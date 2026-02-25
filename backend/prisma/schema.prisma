@@ -1,0 +1,100 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String         @id @default(uuid())
+  name         String
+  email        String         @unique
+  passwordHash String
+  createdAt    DateTime       @default(now())
+  refreshTokens RefreshToken[]
+  favorites    Favorite[]
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Deputy {
+  id           Int        @id
+  nome         String
+  siglaUf      String
+  siglaPartido String
+  urlFoto      String
+  uri          String
+  email        String?
+  updatedAt    DateTime   @updatedAt
+  expenses     Expense[]
+  monthTotals  DeputyMonthTotal[]
+  favorites    Favorite[]
+}
+
+model DeputyMonthTotal {
+  deputyId      Int
+  ano           Int
+  mes           Int
+  totalCents    BigInt
+  expensesCount Int
+  lastSyncedAt  DateTime
+  sourceVersion String?
+  deputy        Deputy @relation(fields: [deputyId], references: [id], onDelete: Cascade)
+
+  @@id([deputyId, ano, mes])
+  @@index([ano, mes])
+}
+
+model ExpenseType {
+  id       String    @id
+  label    String
+  expenses Expense[]
+}
+
+model Expense {
+  id              String      @id @default(uuid())
+  deputyId        Int
+  expenseTypeId   String?
+  ano             Int
+  mes             Int
+  dataDocumento   DateTime?
+  tipoDocumento   String?
+  numeroDocumento String?
+  fornecedor      String?
+  cnpjCpf         String?
+  valorDocumento  Decimal     @db.Decimal(14, 2)
+  valorGlosa      Decimal     @db.Decimal(14, 2)
+  valorLiquido    Decimal     @db.Decimal(14, 2)
+  urlDocumento    String?
+  expenseHash     String      @unique
+  createdAt       DateTime    @default(now())
+  deputy          Deputy      @relation(fields: [deputyId], references: [id], onDelete: Cascade)
+  expenseType     ExpenseType? @relation(fields: [expenseTypeId], references: [id])
+
+  @@index([deputyId, ano, mes])
+  @@index([ano, mes])
+}
+
+model Favorite {
+  id        String   @id @default(uuid())
+  userId    String
+  deputyId  Int
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deputy    Deputy   @relation(fields: [deputyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, deputyId])
+  @@index([userId])
+}
