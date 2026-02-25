@@ -1,0 +1,142 @@
+# Backend - Gastos de Deputados
+
+API REST em Node.js + TypeScript com Fastify, Prisma, PostgreSQL e Redis.
+
+## Stack
+- Node.js + TypeScript
+- Fastify
+- Prisma + PostgreSQL
+- Redis
+- JWT
+- Zod
+- Docker Compose
+
+## Fluxo oficial (Docker-first)
+
+Este projeto foi preparado para funcionar mesmo com **Node v24 no host Windows**.
+
+Regra pratica:
+- **Nao rode `npm install` no host**.
+- Rode tudo pelo Docker (Node 20 LTS dentro do container).
+
+### Rodando com Node 24 (Windows)
+1. `Copy-Item .env.example .env -Force`
+2. `docker compose build --no-cache`
+3. `docker compose up`
+
+A API sobe em `http://localhost:3333`.
+
+## Comandos DX via Docker
+
+Scripts no `package.json` que nao dependem de Node local:
+- `npm run dev:docker`
+- `npm run logs:docker`
+- `npm run prisma:migrate:docker`
+- `npm run prisma:generate:docker`
+- `npm run db:reset:docker`
+- `npm run seed:docker`
+
+Equivalentes PowerShell:
+- `scripts/dev.ps1`
+- `scripts/migrate.ps1`
+- `scripts/seed.ps1`
+
+## Migrations e seed
+
+O container da API executa no startup:
+- espera Postgres e Redis
+- roda `prisma migrate deploy`
+- roda seed se `SEED=true`
+
+Variaveis relevantes no `docker-compose.yml`:
+- `RUN_MIGRATIONS=true`
+- `SEED=false`
+- `WAIT_FOR_DB=true`
+- `WAIT_FOR_REDIS=true`
+
+## CORS para Expo/React Native
+
+Configuracao em `.env`:
+- `CORS_ORIGINS=http://localhost:8081,http://localhost:19006,http://127.0.0.1:8081,http://127.0.0.1:19006,http://192.168.*:*,http://10.0.*:*,exp://*`
+- suporta `*` por origem para facilitar desenvolvimento em rede local (LAN)
+
+Comportamento:
+- allowlist por origem (lista separada por virgula)
+- aceita padroes com wildcard (`*`)
+- aceita requests sem header `Origin` (comum em React Native)
+- methods permitidos: `GET,POST,PUT,DELETE,OPTIONS`
+- headers permitidos: `Authorization,Content-Type`
+- `credentials=false`
+
+## Modo local (opcional)
+
+Se voce quiser rodar sem Docker:
+- recomendado Node 20 (veja `.nvmrc`)
+- `engines` e `volta` no `package.json` sao apenas aviso/recomendacao
+
+## Troubleshooting
+
+### Porta em uso
+- API: `3333`
+- Postgres: `5432`
+- Redis: `6379`
+
+Se precisar, derrube processos que ocupam essas portas ou altere mapeamentos no `docker-compose.yml`.
+
+### Reset completo do banco (dev)
+- `npm run db:reset:docker`
+
+### Limpar containers/volumes e subir do zero
+- `docker compose down -v`
+- `docker compose build --no-cache`
+- `docker compose up`
+
+### Regerar Prisma Client no container
+- `npm run prisma:generate:docker`
+
+## Endpoints principais
+- Auth:
+  - `POST /auth/register`
+  - `POST /auth/login`
+  - `POST /auth/refresh`
+  - `GET /auth/me`
+  - `POST /auth/logout`
+- Users:
+  - `GET /api/users/me`
+  - `PATCH /api/users/me`
+  - `PATCH /api/users/me/password`
+  - `DELETE /api/users/me`
+- Deputados:
+  - `GET /api/deputados`
+  - `GET /api/deputados/:id`
+  - `POST /api/deputados/sync`
+- Despesas:
+  - `GET /api/despesas/tipos`
+  - `GET /api/deputados/:id/despesas`
+  - `POST /api/deputados/:id/despesas/sync`
+- Ranking:
+  - `GET /api/ranking/ceap`
+  - `GET /api/ranking/cecap` (alias)
+- Favoritos:
+  - `GET /api/favoritos`
+  - `POST /api/favoritos`
+  - `DELETE /api/favoritos/:deputyId`
+
+## Postman
+
+Collection em `postman/collection.json`.
+
+## Campo salario
+
+Os endpoints de deputados e ranking retornam `salario` (valor mensal atual).
+O valor e obtido do portal oficial da Camara e cacheado por 24h em Redis.
+
+## App mobile (Expo)
+
+O app React Native completo esta em `mobile/`.
+
+Passos rapidos:
+1. `cd mobile`
+2. `Copy-Item .env.example .env -Force`
+3. `npm install`
+4. `npx expo start`
