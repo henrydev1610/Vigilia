@@ -1,4 +1,5 @@
-﻿export * from './Badge';
+﻿export * from './AppText';
+export * from './Badge';
 export * from './Button';
 export * from './Card';
 export * from './Chip';
@@ -11,6 +12,7 @@ export * from './ListItem';
 export * from './LoadingState';
 export * from './ProgressBar';
 export * from './Screen';
+export * from './ScreenBackground';
 export * from './Select';
 export * from './Skeleton';
 export * from './Snackbar';

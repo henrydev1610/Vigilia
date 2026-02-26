@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { AppLogo } from '../branding/AppLogo';
 
 const GRID_GAP = 28;
 
@@ -57,7 +57,7 @@ export function AuthLayout({ title, subtitle, footerText, children }: AuthLayout
         >
           <View style={styles.header}>
             <View style={styles.logoShell}>
-              <MaterialCommunityIcons name="shield-account-outline" size={40} color="#22d763" />
+              <AppLogo variant="header" size={180} />
             </View>
             <Text style={styles.brandTitle}>{title}</Text>
             <Text style={styles.brandSubtitle}>{subtitle}</Text>
@@ -118,8 +118,8 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
   logoShell: {
-    width: 90,
-    height: 90,
+    width: 120,
+    height: 120,
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',

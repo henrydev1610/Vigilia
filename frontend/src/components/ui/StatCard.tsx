@@ -14,7 +14,7 @@ interface StatCardProps {
 export const StatCard: React.FC<StatCardProps> = ({ title, value, icon, subtitle }) => {
   const theme = useAppTheme();
   return (
-    <Card>
+    <Card style={styles.card}>
       <View style={styles.header}>
         <MaterialCommunityIcons name={icon} size={18} color={theme.colors.primary} />
         <Text style={[styles.title, { color: theme.colors.textSecondary, fontFamily: fallbackFonts.bodyMedium }]}>{title}</Text>
@@ -29,7 +29,12 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 6,
+    marginBottom:80,
+    gap: 10,
+  },
+  card:{
+    marginTop:-50,
+    
   },
   title: {
     fontSize: 12,
