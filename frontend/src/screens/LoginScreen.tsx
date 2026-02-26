@@ -1,8 +1,8 @@
 ﻿import React, { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { fallbackFonts, useAppTheme } from '../theme';
 import { Button, Card, Input, Screen, Snackbar } from '../components/ui';
+import { AppLogo } from '../components/branding/AppLogo';
 
 interface LoginScreenProps {
   onLogin?: () => void;
@@ -27,7 +27,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
     <Screen>
       <View style={styles.wrapper}>
         <View style={styles.brand}>
-          <Icon name="shield-check" size={34} color={theme.colors.primary} />
+          <AppLogo size={54} />
           <Text style={[styles.title, { color: theme.colors.text, fontFamily: fallbackFonts.headingBold }]}>Vigília</Text>
           <Text style={[styles.subtitle, { color: theme.colors.textSecondary, fontFamily: fallbackFonts.body }]}>Transparência pública em tempo real.</Text>
         </View>

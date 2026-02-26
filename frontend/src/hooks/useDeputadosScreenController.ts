@@ -21,6 +21,7 @@ interface DeputadosFilters {
   search: string;
   uf: string;
   partido: string;
+  sort: 'highest_spending' | 'lowest_spending' | 'alphabetical' | 'highest_usage';
   ano: number;
   mes: number;
 }
@@ -41,6 +42,7 @@ export function useDeputadosScreenController() {
     search: '',
     uf: '',
     partido: '',
+    sort: 'highest_spending',
     ano: currentYear,
     mes: currentMonth,
   });
@@ -124,13 +126,32 @@ export function useDeputadosScreenController() {
   const items = useMemo(() => {
     const rows = deputadosQuery.data?.rows ?? [];
     const normalizedSearch = filters.search.trim().toLowerCase();
-    return rows.filter((item) => {
+    const filtered = rows.filter((item) => {
       if (normalizedSearch && !item.nome.toLowerCase().includes(normalizedSearch)) return false;
       if (filters.uf && item.uf.toUpperCase() !== filters.uf.toUpperCase()) return false;
       if (filters.partido && item.partido.toUpperCase() !== filters.partido.toUpperCase()) return false;
       return true;
     });
-  }, [deputadosQuery.data?.rows, filters.partido, filters.search, filters.uf]);
+    const sorted = [...filtered];
+
+    switch (filters.sort) {
+      case 'lowest_spending':
+        sorted.sort((a, b) => Number(a.totalMes ?? 0) - Number(b.totalMes ?? 0));
+        break;
+      case 'alphabetical':
+        sorted.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+        break;
+      case 'highest_usage':
+        sorted.sort((a, b) => (Number(b.totalMes ?? 0) / 46000) - (Number(a.totalMes ?? 0) / 46000));
+        break;
+      case 'highest_spending':
+      default:
+        sorted.sort((a, b) => Number(b.totalMes ?? 0) - Number(a.totalMes ?? 0));
+        break;
+    }
+
+    return sorted;
+  }, [deputadosQuery.data?.rows, filters.partido, filters.search, filters.sort, filters.uf]);
 
   const partidos = useMemo(() => {
     const set = new Set<string>();

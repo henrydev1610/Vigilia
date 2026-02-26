@@ -5,14 +5,16 @@
 
 export type AppTabParamList = {
   Inicio: undefined;
-  Buscar: undefined;
-  Analises: undefined;
-  Ajustes: undefined;
+  Explorar: undefined;
+  Ranking: undefined;
+  Gastos: undefined;
+  Alertas: undefined;
 };
 
 export type AppStackParamList = {
   Tabs: undefined;
   DeputadoDetail: { deputyId: number; deputyName?: string };
+  Profile: undefined;
 };
 
 export type RootStackParamList = {

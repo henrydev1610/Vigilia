@@ -1,4 +1,5 @@
 ﻿import { ColorSchemeName } from 'react-native';
+import { brandLightGreen } from './brand';
 
 export type AppThemeMode = 'light' | 'dark';
 
@@ -19,6 +20,7 @@ export interface AppThemeColors {
   danger: string;
   warning: string;
   success: string;
+  brandLightGreen: string;
   overlay: string;
 }
 
@@ -163,6 +165,7 @@ const darkTheme: AppTheme = {
     danger: '#EF4444',
     warning: '#F59E0B',
     success: '#22C55E',
+    brandLightGreen,
     overlay: 'rgba(4,8,5,0.62)',
   },
   shadow: {
@@ -196,6 +199,7 @@ const lightTheme: AppTheme = {
     danger: '#DC2626',
     warning: '#D97706',
     success: '#16A34A',
+    brandLightGreen,
     overlay: 'rgba(8, 20, 11, 0.2)',
   },
   shadow: {
@@ -219,4 +223,5 @@ export const fallbackFonts = {
   heading: 'System',
   headingBold: 'System',
 } as const;
+
 
