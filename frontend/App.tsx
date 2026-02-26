@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { StyleSheet } from 'react-native';
 import { DarkTheme, DefaultTheme, NavigationContainer, Theme } from '@react-navigation/native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -7,9 +7,15 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { useAppTheme } from './src/theme';
 import { queryClient } from './src/query/client';
+import { preventNativeSplashAutoHide } from './src/utils/nativeSplash';
 
-const App: React.FC = () => {
+void preventNativeSplashAutoHide().catch(() => {
+  // Ignore when native splash is already hidden.
+});
+
+const AppContainer: React.FC = () => {
   const appTheme = useAppTheme();
+
   const navTheme: Theme = {
     ...(appTheme.mode === 'dark' ? DarkTheme : DefaultTheme),
     colors: {
@@ -23,12 +29,18 @@ const App: React.FC = () => {
   };
 
   return (
+    <NavigationContainer theme={navTheme}>
+      <RootNavigator />
+    </NavigationContainer>
+  );
+};
+
+const App: React.FC = () => {
+  return (
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
-          <NavigationContainer theme={navTheme}>
-            <RootNavigator />
-          </NavigationContainer>
+          <AppContainer />
         </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

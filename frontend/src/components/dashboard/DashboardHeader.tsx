@@ -2,13 +2,15 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { fallbackFonts } from '../../theme';
+import { AppLogo } from '../branding/AppLogo';
+import { HeaderProfileButton } from '../header';
 
 export const DashboardHeader: React.FC = () => {
   return (
     <View style={styles.container}>
       <View style={styles.brandWrap}>
         <View style={styles.logoBox}>
-          <Icon name="shield-account" size={40} color="#22D663" />
+          <AppLogo variant="header" size={100} />
         </View>
         <View>
           <Text style={[styles.title, { fontFamily: fallbackFonts.headingBold }]}>Vigília</Text>
@@ -18,7 +20,7 @@ export const DashboardHeader: React.FC = () => {
 
       <View style={styles.actions}>
         <Icon name="bell" size={20} color="#95A7C0" />
-        <Icon name="account-circle" size={21} color="#95A7C0" />
+        <HeaderProfileButton iconSize={21} iconColor="#95A7C0" />
       </View>
     </View>
   );
@@ -41,14 +43,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#062A1A',
     borderRadius: 13,
     height: 60,
-    marginTop:10,
     justifyContent: 'center',
-    width: 60,
+    width: 74,
   },
   title: {
     color: '#F2F5F7',
     fontSize: 30,
-    marginTop:10,
     lineHeight: 40,
     letterSpacing: -0.2,
   },
@@ -56,9 +56,10 @@ const styles = StyleSheet.create({
     color: '#5A6D87',
     fontSize: 11,
     letterSpacing: 1.1,
-    marginTop: 10,
+    marginTop: 6,
   },
   actions: {
+    alignItems: 'center',
     flexDirection: 'row',
     gap: 12,
   },
