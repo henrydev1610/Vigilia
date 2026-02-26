@@ -1,4 +1,5 @@
 ﻿import { create } from 'zustand';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { configureApiAuth } from '../services/api';
 import {
   authMeRequest,
@@ -12,6 +13,27 @@ import {
   userMeRequest,
 } from '../services/endpoints';
 import { ChangePasswordPayload, UpdateMePayload, User } from '../types/api';
+
+const AUTH_ACCESS_TOKEN_KEY = 'auth:accessToken';
+const AUTH_REFRESH_TOKEN_KEY = 'auth:refreshToken';
+
+async function persistTokens(accessToken: string | null, refreshToken: string | null) {
+  const tasks: Promise<unknown>[] = [];
+
+  if (accessToken) {
+    tasks.push(AsyncStorage.setItem(AUTH_ACCESS_TOKEN_KEY, accessToken));
+  } else {
+    tasks.push(AsyncStorage.removeItem(AUTH_ACCESS_TOKEN_KEY));
+  }
+
+  if (refreshToken) {
+    tasks.push(AsyncStorage.setItem(AUTH_REFRESH_TOKEN_KEY, refreshToken));
+  } else {
+    tasks.push(AsyncStorage.removeItem(AUTH_REFRESH_TOKEN_KEY));
+  }
+
+  await Promise.all(tasks);
+}
 
 interface AuthState {
   user: User | null;
@@ -28,6 +50,7 @@ interface AuthState {
   updateMe: (payload: UpdateMePayload) => Promise<User | null>;
   changePassword: (payload: ChangePasswordPayload) => Promise<void>;
   deleteMe: (password: string) => Promise<void>;
+  restoreSession: () => Promise<boolean>;
   refreshSession: () => Promise<string | null>;
   logout: () => Promise<void>;
 }
@@ -39,7 +62,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isLoading: false,
   error: null,
 
-  setTokens: (accessToken, refreshToken) => set({ accessToken, refreshToken }),
+  setTokens: (accessToken, refreshToken) => {
+    set({ accessToken, refreshToken });
+    void persistTokens(accessToken, refreshToken);
+  },
 
   isAuthenticated: () => Boolean(get().accessToken),
 
@@ -68,6 +94,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
       });
+      await persistTokens(tokens.accessToken, tokens.refreshToken);
       await get().fetchMe();
     } catch (error) {
       set({ error: error instanceof Error ? error.message : 'Falha no login.' });
@@ -120,6 +147,56 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   deleteMe: async (password) => {
     await deleteMeRequest({ password });
     set({ user: null, accessToken: null, refreshToken: null });
+    await persistTokens(null, null);
+  },
+
+  restoreSession: async () => {
+    const [storedAccessToken, storedRefreshToken] = await Promise.all([
+      AsyncStorage.getItem(AUTH_ACCESS_TOKEN_KEY),
+      AsyncStorage.getItem(AUTH_REFRESH_TOKEN_KEY),
+    ]);
+
+    const accessToken = storedAccessToken ?? null;
+    const refreshToken = storedRefreshToken ?? null;
+
+    if (!accessToken && !refreshToken) {
+      set({ user: null, accessToken: null, refreshToken: null });
+      return false;
+    }
+
+    set({ accessToken, refreshToken });
+
+    if (!refreshToken) {
+      set({ user: null, accessToken: null, refreshToken: null });
+      await persistTokens(null, null);
+      return false;
+    }
+
+    if (!accessToken) {
+      const renewed = await get().refreshSession();
+      if (!renewed) {
+        return false;
+      }
+    }
+
+    const user = await get().fetchMe();
+    if (user) {
+      return true;
+    }
+
+    const renewed = await get().refreshSession();
+    if (!renewed) {
+      return false;
+    }
+
+    const refreshedUser = await get().fetchMe();
+    if (!refreshedUser) {
+      set({ user: null, accessToken: null, refreshToken: null });
+      await persistTokens(null, null);
+      return false;
+    }
+
+    return true;
   },
 
   refreshSession: async () => {
@@ -130,9 +207,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const tokens = await refreshRequest({ refreshToken });
       set({ accessToken: tokens.accessToken, refreshToken: tokens.refreshToken });
+      await persistTokens(tokens.accessToken, tokens.refreshToken);
       return tokens.accessToken;
     } catch {
       set({ user: null, accessToken: null, refreshToken: null });
+      await persistTokens(null, null);
       return null;
     }
   },
@@ -147,6 +226,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // Ignore network errors during logout to keep UX responsive.
     }
     set({ user: null, accessToken: null, refreshToken: null });
+    await persistTokens(null, null);
   },
 }));
 
@@ -160,6 +240,6 @@ configureApiAuth({
   },
   handleAuthFailure: () => {
     useAuthStore.setState({ user: null, accessToken: null, refreshToken: null });
+    void persistTokens(null, null);
   },
 });
-

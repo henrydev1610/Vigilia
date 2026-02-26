@@ -6,7 +6,21 @@
     "newArchEnabled": true,
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
+    "icon": "./assets/branding/icon.png",
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/branding/adaptive-icon.png",
+        "backgroundColor": "#0A0F0A"
+      },
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.anonymous.vigiliaapp"
+    },
     "splash": {
+      "image": "./assets/branding/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#0A0F0A"
     },

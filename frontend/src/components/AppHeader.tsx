@@ -1,7 +1,9 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
-import { colors, radii, spacing, typography } from '../theme';
+import { colors, spacing, typography } from '../theme';
+import { AppLogo } from './branding/AppLogo';
+import { HeaderProfileButton } from './header';
 
 interface AppHeaderProps {
   title: string;
@@ -23,7 +25,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
       <View style={styles.left}>
         {showLogo ? (
           <View style={styles.logoBox}>
-            <Icon name="shield-account" size={22} color={colors.greenBright} />
+            <AppLogo variant="header" size={30} />
           </View>
         ) : null}
         <View>
@@ -35,9 +37,12 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         <TouchableOpacity activeOpacity={0.8} onPress={onBellPress} style={styles.iconButton}>
           <Icon name="bell-outline" size={24} color={colors.textSecondary} />
         </TouchableOpacity>
-        <TouchableOpacity activeOpacity={0.8} onPress={onProfilePress} style={styles.iconButton}>
-          <Icon name="account-circle-outline" size={24} color={colors.textSecondary} />
-        </TouchableOpacity>
+        <HeaderProfileButton
+          iconSize={24}
+          iconColor={colors.textSecondary}
+          onPress={onProfilePress}
+          containerStyle={styles.iconButton}
+        />
       </View>
     </View>
   );
@@ -62,7 +67,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     height: 40,
     justifyContent: 'center',
-    width: 40,
+    width: 48,
   },
   title: {
     color: colors.textPrimary,

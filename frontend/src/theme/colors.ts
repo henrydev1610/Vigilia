@@ -1,3 +1,5 @@
+import { brandLightGreen } from './brand';
+
 export const colors = {
   bgPrimary: '#0A0F0A',
   bgCard: '#111A11',
@@ -10,6 +12,7 @@ export const colors = {
   greenText: '#4CAF50',
   greenMuted: '#2D5A35',
   greenLine: '#00FF55',
+  brandLightGreen,
 
   alertRed: '#FF3B30',
   alertYellow: '#FFA500',

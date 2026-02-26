@@ -2,6 +2,7 @@
 import { createStackNavigator } from '@react-navigation/stack';
 import { AppTabs } from './AppTabs';
 import { DeputadoDetailScreen } from '../screens/app/DeputadoDetailScreen';
+import { ProfileScreen } from '../screens/app/ProfileScreen';
 import { AppStackParamList } from './types';
 import { useAppTheme } from '../theme';
 
@@ -21,6 +22,7 @@ export const AppNavigator: React.FC = () => {
     >
       <Stack.Screen name="Tabs" component={AppTabs} options={{ headerShown: false }} />
       <Stack.Screen name="DeputadoDetail" component={DeputadoDetailScreen} options={{ title: 'Detalhes do Deputado' }} />
+      <Stack.Screen name="Profile" component={ProfileScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 };
