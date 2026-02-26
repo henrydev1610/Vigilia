@@ -175,10 +175,11 @@ export async function expenseTypesRequest(): Promise<ExpenseType[]> {
 export async function deputyExpensesRequest(
   deputyId: number | string,
   params: { ano?: number; mes?: number; pagina?: number; itens?: number },
+  options?: { signal?: AbortSignal },
 ): Promise<DeputyExpense[]> {
   // Monetary fields from this endpoint:
   // - valorLiquido / valorDocumento => BRL decimal (number | numeric string), not cents.
-  const response = await api.get(`/api/deputados/${deputyId}/despesas`, { params });
+  const response = await api.get(`/api/deputados/${deputyId}/despesas`, { params, signal: options?.signal });
   return extractList<DeputyExpense>(response.data);
 }
 
