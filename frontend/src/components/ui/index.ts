@@ -9,6 +9,7 @@ export * from './ErrorBanner';
 export * from './IconButton';
 export * from './Input';
 export * from './ListItem';
+export * from './GreenGridBackground';
 export * from './LoadingState';
 export * from './ProgressBar';
 export * from './Screen';

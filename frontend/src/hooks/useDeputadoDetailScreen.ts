@@ -1,25 +1,49 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useFocusEffect, useIsFocused } from '@react-navigation/native';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRef } from 'react';
 import {
   deputadoDetailRequest,
   deputyExpensesRequest,
   expenseTypesRequest,
-  getDeputadoMonthlyTotalRequest,
-  getDeputadoYearResumoRequest,
   syncDeputadosMesRequest,
   syncDeputyExpensesRequest,
 } from '../services/endpoints';
 import { mapDeputy, mapExpense } from '../services/mappers';
 import { getApiErrorMessage } from '../utils/apiError';
 import { dedupeByKey, mergeUniqueById, stableKeyFromDespesa } from '../utils/keys';
-import { normalizeMonthlySeries } from '../utils/series';
 
 const PAGE_SIZE = 20;
+const AGGREGATE_PAGE_SIZE = 200;
 const DETAIL_FILTER_STORAGE_PREFIX = 'detail:filters:deputado:';
-const DETAIL_TOTAL_STORAGE_PREFIX = 'detail:lastTotal:deputado:';
+
+function buildPeriodRef(ano: string, mes: string) {
+  return `${ano}-${Number(mes) || 1}`;
+}
+
+function buildMonthlySummaryCacheKey(deputyId: number, ano: string, mes: string) {
+  return `${deputyId}:${buildPeriodRef(ano, mes)}`;
+}
+
+function extractLocalYmd(value: string) {
+  const direct = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (direct) {
+    return `${direct[1]}-${direct[2]}-${direct[3]}`;
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  const year = parsed.getFullYear();
+  const month = String(parsed.getMonth() + 1).padStart(2, '0');
+  const day = String(parsed.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function isCanceledError(error: unknown) {
+  const source = error as { code?: string; name?: string; message?: string } | undefined;
+  if (!source) return false;
+  return source.code === 'ERR_CANCELED' || source.name === 'CanceledError' || source.message === 'canceled';
+}
 
 export function useDeputadoDetailScreen(deputyId: number) {
   const isFocused = useIsFocused();
@@ -36,20 +60,17 @@ export function useDeputadoDetailScreen(deputyId: number) {
   const [syncing, setSyncing] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [filtersReady, setFiltersReady] = useState(false);
-  const [lastPersistedTotal, setLastPersistedTotal] = useState<number | null>(null);
   const autoSyncDoneRef = useRef<Set<string>>(new Set());
+  const filterDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const filterStorageKey = `${DETAIL_FILTER_STORAGE_PREFIX}${deputyId}`;
-  const totalStorageKey = `${DETAIL_TOTAL_STORAGE_PREFIX}${deputyId}`;
+  const summaryCacheKey = buildMonthlySummaryCacheKey(deputyId, appliedAno, appliedMes);
 
   useEffect(() => {
     let active = true;
     (async () => {
       try {
-        const [rawFilters, rawTotal] = await Promise.all([
-          AsyncStorage.getItem(filterStorageKey),
-          AsyncStorage.getItem(totalStorageKey),
-        ]);
+        const rawFilters = await AsyncStorage.getItem(filterStorageKey);
         if (!active) return;
 
         if (rawFilters) {
@@ -60,13 +81,6 @@ export function useDeputadoDetailScreen(deputyId: number) {
           setMes(nextMes);
           setAppliedAno(nextAno);
           setAppliedMes(nextMes);
-        }
-
-        if (rawTotal) {
-          const parsedTotal = Number(rawTotal);
-          if (Number.isFinite(parsedTotal)) {
-            setLastPersistedTotal(parsedTotal);
-          }
         }
       } catch {
         // ignore local storage errors
@@ -80,12 +94,19 @@ export function useDeputadoDetailScreen(deputyId: number) {
     return () => {
       active = false;
     };
-  }, [currentMonth, currentYear, filterStorageKey, totalStorageKey]);
+  }, [currentMonth, currentYear, filterStorageKey]);
 
   useEffect(() => {
     if (!filtersReady) return;
     void AsyncStorage.setItem(filterStorageKey, JSON.stringify({ ano: appliedAno, mes: appliedMes }));
   }, [appliedAno, appliedMes, filterStorageKey, filtersReady]);
+
+  useEffect(() => () => {
+    if (filterDebounceRef.current) {
+      clearTimeout(filterDebounceRef.current);
+      filterDebounceRef.current = null;
+    }
+  }, []);
 
   const deputyQuery = useQuery({
     queryKey: ['deputado', deputyId, 'profile'],
@@ -106,13 +127,17 @@ export function useDeputadoDetailScreen(deputyId: number) {
   const despesasQuery = useInfiniteQuery({
     queryKey: ['deputado', deputyId, 'despesas', appliedAno, appliedMes],
     initialPageParam: 1,
-    queryFn: async ({ pageParam }) => {
-      const rows = await deputyExpensesRequest(deputyId, {
-        ano: Number(appliedAno) || undefined,
-        mes: Number(appliedMes) || undefined,
-        pagina: pageParam,
-        itens: PAGE_SIZE,
-      });
+    queryFn: async ({ pageParam, signal }) => {
+      const rows = await deputyExpensesRequest(
+        deputyId,
+        {
+          ano: Number(appliedAno) || undefined,
+          mes: Number(appliedMes) || undefined,
+          pagina: pageParam,
+          itens: PAGE_SIZE,
+        },
+        { signal },
+      );
 
       const mapped = dedupeByKey(
         rows.map((item) => {
@@ -137,38 +162,71 @@ export function useDeputadoDetailScreen(deputyId: number) {
     refetchOnMount: 'always',
   });
 
-  const monthlyTotalQuery = useQuery({
-    queryKey: ['deputado', deputyId, 'resumo', appliedAno, appliedMes],
-    queryFn: () =>
-      getDeputadoMonthlyTotalRequest(deputyId, {
-        ano: Number(appliedAno) || undefined,
-        mes: Number(appliedMes) || undefined,
-      }),
-    enabled: isFocused && filtersReady,
-    staleTime: 30 * 1000,
-    refetchOnMount: 'always',
-  });
+  const monthlySummaryQuery = useQuery({
+    queryKey: ['deputado', deputyId, 'resumo-mensal', summaryCacheKey],
+    queryFn: async ({ signal }) => {
+      const anoRef = Number(appliedAno) || undefined;
+      const mesRef = Number(appliedMes) || undefined;
+      const byId = new Map<string, ReturnType<typeof mapExpense>>();
+      let page = 1;
 
-  const yearlyResumoQuery = useQuery({
-    queryKey: ['deputado', deputyId, 'resumo-anual', appliedAno],
-    queryFn: () => getDeputadoYearResumoRequest(deputyId, { ano: Number(appliedAno) || new Date().getFullYear() }),
+      while (true) {
+        const rows = await deputyExpensesRequest(
+          deputyId,
+          {
+            ano: anoRef,
+            mes: mesRef,
+            pagina: page,
+            itens: AGGREGATE_PAGE_SIZE,
+          },
+          { signal },
+        );
+
+        rows.forEach((item) => {
+          const vm = mapExpense(item);
+          const id = stableKeyFromDespesa(vm, { deputadoId: deputyId, ano: appliedAno, mes: appliedMes });
+          byId.set(id, { ...vm, id });
+        });
+
+        if (rows.length < AGGREGATE_PAGE_SIZE) {
+          break;
+        }
+        page += 1;
+      }
+
+      const despesas = Array.from(byId.values());
+      const totalPorDia = new Map<string, number>();
+      let totalMensal = 0;
+
+      despesas.forEach((item) => {
+        const ymd = extractLocalYmd(item.data);
+        if (!ymd) return;
+        const current = totalPorDia.get(ymd) ?? 0;
+        const valor = Number(item.valor || 0);
+        totalPorDia.set(ymd, current + valor);
+        totalMensal += valor;
+      });
+
+      return {
+        totalMensal,
+        totalPorDia: Array.from(totalPorDia.entries()).map(([date, total]) => ({ date, total })),
+        despesas,
+      };
+    },
     enabled: isFocused && filtersReady,
-    staleTime: 30 * 1000,
+    staleTime: 45 * 1000,
+    gcTime: 10 * 60 * 1000,
     refetchOnMount: 'always',
   });
 
   useEffect(() => {
-    const nextError = deputyQuery.error
-      ?? despesasQuery.error
-      ?? monthlyTotalQuery.error
-      ?? yearlyResumoQuery.error
-      ?? null;
-    if (!nextError) {
+    const nextError = deputyQuery.error ?? despesasQuery.error ?? monthlySummaryQuery.error ?? null;
+    if (!nextError || isCanceledError(nextError)) {
       setError(null);
       return;
     }
     setError(getApiErrorMessage(nextError, 'Falha ao carregar detalhes do deputado.'));
-  }, [deputyQuery.error, despesasQuery.error, monthlyTotalQuery.error, yearlyResumoQuery.error]);
+  }, [deputyQuery.error, despesasQuery.error, monthlySummaryQuery.error]);
 
   const expenses = useMemo(() => {
     const pages = despesasQuery.data?.pages ?? [];
@@ -193,52 +251,44 @@ export function useDeputadoDetailScreen(deputyId: number) {
     return map;
   }, [expenseTypesQuery.data]);
 
-  const monthlyTotalFromExpenses = useMemo(
-    () => expenses.reduce((acc, item) => acc + Number(item.valor || 0), 0),
-    [expenses],
-  );
-
   const monthlyTotal = useMemo(() => {
-    if (monthlyTotalQuery.isSuccess) {
-      return Number(monthlyTotalQuery.data ?? 0);
+    if (monthlySummaryQuery.data) {
+      return Number(monthlySummaryQuery.data.totalMensal ?? 0);
     }
     if (expenses.length > 0) {
-      return monthlyTotalFromExpenses;
-    }
-    if (lastPersistedTotal !== null) {
-      return lastPersistedTotal;
+      return expenses.reduce((acc, item) => acc + Number(item.valor || 0), 0);
     }
     return 0;
-  }, [expenses.length, lastPersistedTotal, monthlyTotalFromExpenses, monthlyTotalQuery.data, monthlyTotalQuery.isSuccess]);
+  }, [expenses, monthlySummaryQuery.data]);
 
-  useEffect(() => {
-    if (!monthlyTotalQuery.isSuccess) return;
-    const value = Number(monthlyTotalQuery.data ?? 0);
-    if (!Number.isFinite(value)) return;
-    setLastPersistedTotal(value);
-    void AsyncStorage.setItem(totalStorageKey, String(value));
-  }, [monthlyTotalQuery.data, monthlyTotalQuery.isSuccess, totalStorageKey]);
+  const chartExpenses = useMemo(() => monthlySummaryQuery.data?.despesas ?? expenses, [expenses, monthlySummaryQuery.data?.despesas]);
+  const monthlyTotalLoading = monthlySummaryQuery.isLoading || (monthlySummaryQuery.isFetching && !monthlySummaryQuery.data);
+  const chartLoading = monthlySummaryQuery.isLoading || (monthlySummaryQuery.isFetching && !monthlySummaryQuery.data);
 
-  const chartPoints = useMemo(() => {
-    const raw = (yearlyResumoQuery.data?.totalsByMonth ?? []).map((item) => ({
-      ano: Number(appliedAno),
-      mes: Number(item.mes),
-      total: Number(item.totalMes ?? 0),
-    }));
-    const normalized = normalizeMonthlySeries(raw, Number(appliedAno));
-    return normalized.map((point) => ({
-      key: point.key,
-      label: point.label,
-      value: point.total,
-    }));
-  }, [appliedAno, yearlyResumoQuery.data?.totalsByMonth]);
-
-  const applyFilters = useCallback(async () => {
+  const applyFilters = useCallback(async (next?: { ano?: string; mes?: string }) => {
     setRefreshing(true);
     setError(null);
     try {
-      setAppliedAno(ano);
-      setAppliedMes(mes);
+      const nextAno = String(next?.ano ?? ano);
+      const nextMes = String(next?.mes ?? mes);
+      if (next?.ano) setAno(nextAno);
+      if (next?.mes) setMes(nextMes);
+      if (next?.ano || next?.mes) {
+        if (filterDebounceRef.current) {
+          clearTimeout(filterDebounceRef.current);
+        }
+        await new Promise<void>((resolve) => {
+          filterDebounceRef.current = setTimeout(() => {
+            setAppliedAno(nextAno);
+            setAppliedMes(nextMes);
+            filterDebounceRef.current = null;
+            resolve();
+          }, 250);
+        });
+      } else {
+        setAppliedAno(nextAno);
+        setAppliedMes(nextMes);
+      }
     } finally {
       setRefreshing(false);
     }
@@ -254,8 +304,7 @@ export function useDeputadoDetailScreen(deputyId: number) {
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['deputado', deputyId, 'despesas', appliedAno, appliedMes] }),
-        queryClient.invalidateQueries({ queryKey: ['deputado', deputyId, 'resumo', appliedAno, appliedMes] }),
-        queryClient.invalidateQueries({ queryKey: ['deputado', deputyId, 'resumo-anual', appliedAno] }),
+        queryClient.invalidateQueries({ queryKey: ['deputado', deputyId, 'resumo-mensal', summaryCacheKey] }),
         queryClient.invalidateQueries({ queryKey: ['deputados', `${appliedAno}-${String(Number(appliedMes)).padStart(2, '0')}`] }),
         queryClient.invalidateQueries({ queryKey: ['deputados-resumo', `${appliedAno}-${String(Number(appliedMes)).padStart(2, '0')}`] }),
       ]);
@@ -291,16 +340,15 @@ export function useDeputadoDetailScreen(deputyId: number) {
       });
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['deputado', deputyId, 'despesas', appliedAno, appliedMes] }),
-        queryClient.invalidateQueries({ queryKey: ['deputado', deputyId, 'resumo', appliedAno, appliedMes] }),
-        queryClient.invalidateQueries({ queryKey: ['deputado', deputyId, 'resumo-anual', appliedAno] }),
+        queryClient.invalidateQueries({ queryKey: ['deputado', deputyId, 'resumo-mensal', summaryCacheKey] }),
         queryClient.invalidateQueries({ queryKey: ['deputados', `${appliedAno}-${String(Number(appliedMes)).padStart(2, '0')}`] }),
         queryClient.invalidateQueries({ queryKey: ['deputados-resumo', `${appliedAno}-${String(Number(appliedMes)).padStart(2, '0')}`] }),
       ]);
     } catch (err) {
-      setError(getApiErrorMessage(err, 'Falha ao sincronizar automaticamente o mês.'));
+      setError(getApiErrorMessage(err, 'Falha ao sincronizar automaticamente o mes.'));
       autoSyncDoneRef.current.delete(cycleKey);
     }
-  }, [appliedAno, appliedMes, deputyId, filtersReady, queryClient]);
+  }, [appliedAno, appliedMes, deputyId, filtersReady, queryClient, summaryCacheKey]);
 
   const onLoadMore = useCallback(async () => {
     if (!despesasQuery.hasNextPage || despesasQuery.isFetchingNextPage) return;
@@ -313,7 +361,7 @@ export function useDeputadoDetailScreen(deputyId: number) {
       void autoSyncCurrentMonth();
       void Promise.all([
         queryClient.invalidateQueries({
-          queryKey: ['deputado', deputyId, 'resumo', appliedAno, appliedMes],
+          queryKey: ['deputado', deputyId, 'resumo-mensal', summaryCacheKey],
           exact: true,
           refetchType: 'active',
         }),
@@ -323,13 +371,14 @@ export function useDeputadoDetailScreen(deputyId: number) {
         }),
       ]);
       return undefined;
-    }, [appliedAno, appliedMes, autoSyncCurrentMonth, deputyId, filtersReady, queryClient]),
+    }, [appliedAno, appliedMes, autoSyncCurrentMonth, deputyId, filtersReady, queryClient, summaryCacheKey]),
   );
 
   return {
     deputy: deputyQuery.data ?? null,
     expenses,
     selectedExpense,
+    chartExpenses,
     setSelectedExpenseId,
     ano,
     mes,
@@ -337,11 +386,10 @@ export function useDeputadoDetailScreen(deputyId: number) {
     setMes,
     expenseTypeMap,
     monthlyTotal,
-    monthlyTotalLoading: monthlyTotalQuery.isLoading || monthlyTotalQuery.isFetching,
-    monthlyTotalConfirmed: monthlyTotalQuery.isSuccess,
-    chartPoints,
-    chartLoading: yearlyResumoQuery.isLoading || (yearlyResumoQuery.isFetching && !yearlyResumoQuery.data),
-    loading: !filtersReady || deputyQuery.isLoading || despesasQuery.isLoading || monthlyTotalQuery.isLoading,
+    monthlyTotalLoading,
+    monthlyTotalConfirmed: Boolean(monthlySummaryQuery.data),
+    chartLoading,
+    loading: !filtersReady || deputyQuery.isLoading || despesasQuery.isLoading || monthlySummaryQuery.isLoading,
     refreshing,
     loadingMore: despesasQuery.isFetchingNextPage,
     syncing,
@@ -352,4 +400,3 @@ export function useDeputadoDetailScreen(deputyId: number) {
     syncExpenses,
   };
 }
-
