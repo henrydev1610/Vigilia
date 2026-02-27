@@ -3,6 +3,8 @@ import { z } from "zod";
 
 dotenv.config();
 
+const LEGACY_REDIS_ENV_KEYS = ["REDIS_HOST", "REDIS_PORT", "REDIS_PASSWORD"] as const;
+
 function assertValidServiceUrl(urlRaw: string, label: string, nodeEnv: string) {
   let parsed: URL;
   try {
@@ -63,6 +65,10 @@ if (!parsed.success) {
 
 try {
   assertValidServiceUrl(parsed.data.DATABASE_URL, "DATABASE_URL", parsed.data.NODE_ENV);
+  const legacyRedisEnvInUse = LEGACY_REDIS_ENV_KEYS.filter((key) => Boolean(process.env[key]?.trim()));
+  if (legacyRedisEnvInUse.length > 0) {
+    throw new Error(`Variaveis legadas de Redis nao sao suportadas: ${legacyRedisEnvInUse.join(", ")}`);
+  }
   if (parsed.data.ENABLE_REDIS) {
     const hasRedisUrl = Boolean(parsed.data.REDIS_URL?.trim());
     if (!hasRedisUrl) throw new Error("ENABLE_REDIS=true exige REDIS_URL");
