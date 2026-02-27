@@ -52,7 +52,7 @@ Variaveis relevantes no `docker-compose.yml`:
 - `RUN_MIGRATIONS=true`
 - `SEED=false`
 - `WAIT_FOR_DB=true`
-- `WAIT_FOR_REDIS=true`
+- `WAIT_FOR_REDIS=false`
 
 ## Deploy no Dokploy (producao)
 
@@ -64,9 +64,8 @@ Pontos criticos para evitar erro Prisma `P1001`:
 Exemplo:
 - `DATABASE_URL=postgresql://postgres:SENHA@postgres:5432/gasto_politico?schema=public`
 - `DATABASE_ADMIN_URL=postgresql://postgres:SENHA@postgres:5432/postgres` (opcional; usado para criar DB se faltar)
-- `REDIS_URL=redis://:SENHA@redis:6379` (ou `redis://redis:6379` sem senha)
+- `REDIS_URL=redis://default:SENHA@backendvigilia-redis-cyzanf:6379`
 - `ENABLE_REDIS=true` (ou `false` para modo sem cache)
-- `REDIS_HOST=redis` + `REDIS_PORT=6379` + `REDIS_PASSWORD=` (alternativa ao REDIS_URL)
 - `RUN_MIGRATIONS=true`
 - `AUTO_CREATE_DATABASE=true`
 - `MIGRATION_MAX_RETRIES=8`
@@ -74,7 +73,7 @@ Exemplo:
 - `START_ON_MIGRATION_FAILURE=false`
 - `START_ON_DEPENDENCY_FAILURE=false` (recomendado em producao)
 - `WAIT_FOR_DB=true`
-- `WAIT_FOR_REDIS=true`
+- `WAIT_FOR_REDIS=false`
 - `DB_CONNECT_MAX_RETRIES=8`
 - `DB_CONNECT_RETRY_DELAY_MS=2000`
 - `DB_REQUIRED_ON_START=true` (recomendado em producao para fail-fast)
