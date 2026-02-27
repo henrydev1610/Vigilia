@@ -129,7 +129,7 @@ Se precisar, derrube processos que ocupam essas portas ou altere mapeamentos no 
   - `GET /health/redis` -> `200` quando Redis ok, `503` degradado, `200` com `disabled` quando `ENABLE_REDIS=false`
 - Auth:
   - `POST /auth/register`
-  - `POST /auth/login`
+  - `POST /auth/login` (login e POST com JSON `{ "email": "...", "password": "..." }`)
   - `POST /auth/refresh`
   - `GET /auth/me`
   - `POST /auth/logout`
