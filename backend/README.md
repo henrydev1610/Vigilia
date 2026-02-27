@@ -24,7 +24,7 @@ Regra pratica:
 2. `docker compose build --no-cache`
 3. `docker compose up`
 
-A API sobe em `http://localhost:3333`.
+A API sobe em `http://localhost:3334`.
 
 ## Comandos DX via Docker
 
@@ -52,7 +52,20 @@ Variaveis relevantes no `docker-compose.yml`:
 - `RUN_MIGRATIONS=true`
 - `SEED=false`
 - `WAIT_FOR_DB=true`
-- `WAIT_FOR_REDIS=true`
+- `WAIT_FOR_REDIS=false`
+
+## Deploy no Dokploy (producao)
+
+Use apenas variaveis em runtime no painel do Dokploy (nao dependa de arquivo `.env` no deploy).
+
+Minimo recomendado:
+- `NODE_ENV=production`
+- `PORT=3334`
+- `DATABASE_URL=postgresql://USER:SENHA@HOST:5432/gasto_politico?schema=public`
+- `ENABLE_REDIS=true` ou `false`
+- `REDIS_URL=redis://default:SENHA@HOST:6379` (obrigatoria quando `ENABLE_REDIS=true`)
+- `WAIT_FOR_REDIS=false`
+- `JWT_ACCESS_SECRET` e `JWT_REFRESH_SECRET`
 
 ## CORS para Expo/React Native
 
@@ -77,7 +90,7 @@ Se voce quiser rodar sem Docker:
 ## Troubleshooting
 
 ### Porta em uso
-- API: `3333`
+- API: `3334`
 - Postgres: `5432`
 - Redis: `6379`
 
