@@ -9,16 +9,26 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    env_file:
-      - .env
     environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: ${PORT:-3334}
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL:-}
+      ENABLE_REDIS: ${ENABLE_REDIS:-true}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN:-15m}
+      JWT_REFRESH_EXPIRES_DAYS: ${JWT_REFRESH_EXPIRES_DAYS:-30}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8081,http://localhost:19006,http://127.0.0.1:8081,http://127.0.0.1:19006,http://192.168.*:*,http://10.0.*:*,exp://*}
+      CAMARA_BASE_URL: ${CAMARA_BASE_URL:-https://dadosabertos.camara.leg.br/api/v2}
+      AGGREGATES_CACHE_TTL_SECONDS: ${AGGREGATES_CACHE_TTL_SECONDS:-1800}
       RUN_MIGRATIONS: "true"
       SEED: "false"
       WAIT_FOR_DB: "true"
-      WAIT_FOR_REDIS: "true"
-    command: npm run dev
+      WAIT_FOR_REDIS: "false"
+    command: npm run start
     ports:
-      - "3334:3333"
+      - "3334:3334"
     volumes:
       - ./src:/app/src
       - ./prisma:/app/prisma
@@ -30,7 +40,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "node -e \"fetch('http://localhost:3333/health').then((r)=>r.ok?process.exit(0):process.exit(1)).catch(()=>process.exit(1))\""
+          "node -e \"fetch('http://localhost:3334/health').then((r)=>r.ok?process.exit(0):process.exit(1)).catch(()=>process.exit(1))\""
         ]
       interval: 15s
       timeout: 5s
