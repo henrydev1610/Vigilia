@@ -3,11 +3,37 @@ import { z } from "zod";
 
 dotenv.config();
 
+function assertValidServiceUrl(urlRaw: string, label: string, nodeEnv: string) {
+  let parsed: URL;
+  try {
+    parsed = new URL(urlRaw);
+  } catch {
+    throw new Error(`${label} invalida: formato de URL incorreto`);
+  }
+
+  const host = (parsed.hostname || "").trim().toLowerCase();
+  if (!host) {
+    throw new Error(`${label} invalida: host ausente`);
+  }
+
+  const isPlaceholder = host === "host" || host === "<host>" || host === "db_host";
+  if (isPlaceholder) {
+    throw new Error(`${label} invalida: placeholder HOST nao substituido`);
+  }
+
+  const isLocalHost = host === "localhost" || host === "127.0.0.1" || host === "::1";
+  if (nodeEnv === "production" && isLocalHost) {
+    throw new Error(`${label} invalida em producao: use hostname interno do servico no Dokploy`);
+  }
+}
+
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-  PORT: z.coerce.number().default(3333),
+  PORT: z.coerce.number().default(3334),
   DATABASE_URL: z.string().min(1),
   REDIS_URL: z.string().min(1),
+  DB_CONNECT_MAX_RETRIES: z.coerce.number().int().min(1).max(30).default(8),
+  DB_CONNECT_RETRY_DELAY_MS: z.coerce.number().int().min(250).max(60000).default(2000),
   JWT_ACCESS_SECRET: z.string().min(32),
   JWT_REFRESH_SECRET: z.string().min(32),
   JWT_ACCESS_EXPIRES_IN: z.string().default("15m"),
@@ -23,6 +49,16 @@ const parsed = envSchema.safeParse(process.env);
 
 if (!parsed.success) {
   console.error("Invalid environment variables", parsed.error.flatten().fieldErrors);
+  process.exit(1);
+}
+
+try {
+  assertValidServiceUrl(parsed.data.DATABASE_URL, "DATABASE_URL", parsed.data.NODE_ENV);
+  assertValidServiceUrl(parsed.data.REDIS_URL, "REDIS_URL", parsed.data.NODE_ENV);
+} catch (error) {
+  console.error("Invalid environment variables", {
+    connection: error instanceof Error ? error.message : String(error),
+  });
   process.exit(1);
 }
 

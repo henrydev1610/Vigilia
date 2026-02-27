@@ -24,7 +24,7 @@ Regra pratica:
 2. `docker compose build --no-cache`
 3. `docker compose up`
 
-A API sobe em `http://localhost:3333`.
+A API sobe em `http://localhost:3334`.
 
 ## Comandos DX via Docker
 
@@ -54,6 +54,22 @@ Variaveis relevantes no `docker-compose.yml`:
 - `WAIT_FOR_DB=true`
 - `WAIT_FOR_REDIS=true`
 
+## Deploy no Dokploy (producao)
+
+Pontos criticos para evitar erro Prisma `P1001`:
+- `DATABASE_URL` deve usar o hostname interno do servico Postgres no Dokploy (ex.: `db_vigilia`).
+- nao use `HOST` placeholder nem `localhost` em producao.
+- API e Postgres/Redis precisam estar no mesmo projeto/rede interna.
+
+Exemplo:
+- `DATABASE_URL=postgresql://postgres:SENHA@db_vigilia:5432/gasto_politico?schema=public`
+- `REDIS_URL=redis://:SENHA@redis:6379` (ou `redis://redis:6379` sem senha)
+- `RUN_MIGRATIONS=true`
+- `WAIT_FOR_DB=true`
+- `WAIT_FOR_REDIS=true`
+- `DB_CONNECT_MAX_RETRIES=8`
+- `DB_CONNECT_RETRY_DELAY_MS=2000`
+
 ## CORS para Expo/React Native
 
 Configuracao em `.env`:
@@ -77,7 +93,7 @@ Se voce quiser rodar sem Docker:
 ## Troubleshooting
 
 ### Porta em uso
-- API: `3333`
+- API: `3334`
 - Postgres: `5432`
 - Redis: `6379`
 
