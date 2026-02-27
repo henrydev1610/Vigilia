@@ -71,14 +71,14 @@ Exemplo:
 - `AUTO_CREATE_DATABASE=true`
 - `MIGRATION_MAX_RETRIES=8`
 - `MIGRATION_RETRY_DELAY_SECONDS=3`
-- `START_ON_MIGRATION_FAILURE=true`
+- `START_ON_MIGRATION_FAILURE=false`
 - `START_ON_DEPENDENCY_FAILURE=true`
 - `WAIT_FOR_DB=true`
 - `WAIT_FOR_REDIS=true`
 - `DB_CONNECT_MAX_RETRIES=8`
 - `DB_CONNECT_RETRY_DELAY_MS=2000`
 
-Se o volume do Postgres ja existia sem `gasto_politico`, o entrypoint da API tenta criar o banco automaticamente antes de rodar migrations.
+Se o volume do Postgres ja existia sem `gasto_politico`, o entrypoint da API tenta criar o banco automaticamente e aplicar `GRANT ALL PRIVILEGES` para o usuario da `DATABASE_URL` antes de rodar migrations.
 
 ## CORS para Expo/React Native
 

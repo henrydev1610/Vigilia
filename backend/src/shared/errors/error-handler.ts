@@ -14,8 +14,11 @@ function isZodLikeError(error: unknown): error is ZodLikeError {
   return maybe.name === "ZodError" && Array.isArray(maybe.issues);
 }
 
-export function errorHandler(error: Error, _request: FastifyRequest, reply: FastifyReply): void {
-  _request.log.error({
+export function errorHandler(error: Error, request: FastifyRequest, reply: FastifyReply): void {
+  request.log.error({
+    requestId: request.id,
+    method: request.method,
+    route: request.routerPath ?? request.url,
     message: error.message,
     name: error.name,
     stack: error.stack,
