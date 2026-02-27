@@ -23,6 +23,9 @@ function matchesOriginPattern(origin: string, pattern: string): boolean {
 }
 
 export async function buildApp() {
+  const bootStartedAt = Date.now();
+  const apiVersion = process.env.APP_VERSION || process.env.npm_package_version || "1.0.0";
+
   const app = Fastify({
     logger: {
       level: env.NODE_ENV === "production" ? "info" : "debug"
@@ -56,7 +59,7 @@ export async function buildApp() {
 
       cb(null, false);
     },
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Authorization", "Content-Type"],
     credentials: false
   });
@@ -75,7 +78,13 @@ export async function buildApp() {
     }
   });
 
-  app.get("/health", async () => ({ ok: true }));
+  app.get("/health", async () => ({
+    status: "ok",
+    uptime: process.uptime(),
+    version: apiVersion,
+    timestamp: new Date().toISOString(),
+    startedAt: new Date(bootStartedAt).toISOString(),
+  }));
 
   await app.register(authRoutes);
   await app.register(usersRoutes);

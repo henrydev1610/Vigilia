@@ -111,6 +111,8 @@ Se precisar, derrube processos que ocupam essas portas ou altere mapeamentos no 
 - `npm run prisma:generate:docker`
 
 ## Endpoints principais
+- Health:
+  - `GET /health` -> `200` com `status`, `uptime`, `version`, `timestamp`
 - Auth:
   - `POST /auth/register`
   - `POST /auth/login`

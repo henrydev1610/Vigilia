@@ -7,7 +7,7 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function waitForDatabaseConnection() {
+async function warmDatabaseConnection() {
   let attempt = 0;
   const totalAttempts = env.DB_CONNECT_MAX_RETRIES;
 
@@ -15,20 +15,29 @@ async function waitForDatabaseConnection() {
     attempt += 1;
     try {
       await prisma.$queryRaw`SELECT 1`;
+      // Prime db connection pool for first real requests.
+      console.info(`[startup] database connected on attempt ${attempt}`);
       return;
     } catch (error) {
       if (attempt >= totalAttempts) {
-        throw error;
+        console.error("[startup] database still unavailable after retries", {
+          attempts: totalAttempts,
+          reason: error instanceof Error ? error.message : String(error),
+        });
+        return;
       }
       const jitter = Math.floor(Math.random() * 300);
       const delayMs = Math.min(env.DB_CONNECT_RETRY_DELAY_MS * attempt + jitter, 15000);
+      console.warn("[startup] waiting database connection retry", {
+        attempt,
+        delayMs,
+      });
       await sleep(delayMs);
     }
   }
 }
 
 async function bootstrap() {
-  await waitForDatabaseConnection();
   const app = await buildApp();
 
   try {
@@ -40,6 +49,8 @@ async function bootstrap() {
     app.log.error(error);
     process.exit(1);
   }
+
+  void warmDatabaseConnection();
 
   const close = async () => {
     await app.close();
