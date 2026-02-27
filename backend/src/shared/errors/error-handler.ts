@@ -15,6 +15,12 @@ function isZodLikeError(error: unknown): error is ZodLikeError {
 }
 
 export function errorHandler(error: Error, _request: FastifyRequest, reply: FastifyReply): void {
+  _request.log.error({
+    message: error.message,
+    name: error.name,
+    stack: error.stack,
+  }, "request failed");
+
   if (isZodLikeError(error)) {
     const details =
       error instanceof ZodError
