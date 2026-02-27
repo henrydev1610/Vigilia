@@ -6,7 +6,7 @@
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:3333" },
+    { "key": "baseUrl", "value": "http://localhost:3334" },
     { "key": "accessToken", "value": "" },
     { "key": "refreshToken", "value": "" },
     { "key": "userName", "value": "User Test" },
@@ -50,6 +50,7 @@
         },
         {
           "name": "Login",
+          "description": "Use metodo POST (nao GET) com body JSON: {\"email\":\"...\",\"password\":\"...\"}.",
           "event": [
             {
               "listen": "test",

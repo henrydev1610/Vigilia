@@ -47,6 +47,8 @@ async function bootstrap() {
   }
 
   const app = await buildApp();
+  await app.ready();
+  app.log.info(`\n${app.printRoutes()}`);
 
   try {
     await app.listen({
