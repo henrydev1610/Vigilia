@@ -14,6 +14,13 @@ function isZodLikeError(error: unknown): error is ZodLikeError {
   return maybe.name === "ZodError" && Array.isArray(maybe.issues);
 }
 
+function isPrismaConnectivityError(error: unknown) {
+  if (!(error instanceof Error)) return false;
+  const prismaInit = error.name === "PrismaClientInitializationError";
+  const unreachable = /can't reach database server|p1001|connect|database server/i.test(error.message);
+  return prismaInit || unreachable;
+}
+
 export function errorHandler(error: Error, request: FastifyRequest, reply: FastifyReply): void {
   request.log.error({
     requestId: request.id,
@@ -54,6 +61,17 @@ export function errorHandler(error: Error, request: FastifyRequest, reply: Fasti
         code: error.code,
         message: error.message,
         details: error.details
+      }
+    });
+    return;
+  }
+
+  if (isPrismaConnectivityError(error)) {
+    reply.status(503).send({
+      success: false,
+      error: {
+        code: "DATABASE_UNAVAILABLE",
+        message: "Banco de dados indisponivel no momento"
       }
     });
     return;
