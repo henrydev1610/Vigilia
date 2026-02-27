@@ -20,7 +20,7 @@ Regra pratica:
 - Rode tudo pelo Docker (Node 20 LTS dentro do container).
 
 ### Rodando com Node 24 (Windows)
-1. `Copy-Item .env.example .env -Force`
+1. Defina variaveis de ambiente no runtime (Docker/Dokploy); nao dependa de arquivo `.env` no deploy.
 2. `docker compose build --no-cache`
 3. `docker compose up`
 
@@ -169,6 +169,6 @@ O app React Native completo esta em `mobile/`.
 
 Passos rapidos:
 1. `cd mobile`
-2. `Copy-Item .env.example .env -Force`
+2. Configure variaveis de ambiente no runtime do app
 3. `npm install`
 4. `npx expo start`
