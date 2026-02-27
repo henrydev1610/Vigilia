@@ -64,6 +64,8 @@ Pontos criticos para evitar erro Prisma `P1001`:
 Exemplo:
 - `DATABASE_URL=postgresql://postgres:SENHA@db_vigilia:5432/gasto_politico?schema=public`
 - `REDIS_URL=redis://:SENHA@redis:6379` (ou `redis://redis:6379` sem senha)
+- `ENABLE_REDIS=true` (ou `false` para modo sem cache)
+- `REDIS_HOST=redis` + `REDIS_PORT=6379` + `REDIS_PASSWORD=` (alternativa ao REDIS_URL)
 - `RUN_MIGRATIONS=true`
 - `MIGRATION_MAX_RETRIES=8`
 - `MIGRATION_RETRY_DELAY_SECONDS=3`
@@ -118,6 +120,7 @@ Se precisar, derrube processos que ocupam essas portas ou altere mapeamentos no 
 - Health:
   - `GET /health` -> `200` com `status`, `uptime`, `version`, `timestamp`
   - `GET /health/db` -> `200` quando DB disponivel, `503` quando indisponivel
+  - `GET /health/redis` -> `200` quando Redis ok, `503` degradado, `200` com `disabled` quando `ENABLE_REDIS=false`
 - Auth:
   - `POST /auth/register`
   - `POST /auth/login`
