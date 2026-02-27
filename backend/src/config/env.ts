@@ -40,9 +40,6 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1),
   ENABLE_REDIS: z.preprocess(toBoolean, z.boolean().default(true)),
   REDIS_URL: z.string().optional(),
-  REDIS_HOST: z.string().optional(),
-  REDIS_PORT: z.coerce.number().int().min(1).max(65535).default(6379),
-  REDIS_PASSWORD: z.string().optional(),
   DB_CONNECT_MAX_RETRIES: z.coerce.number().int().min(1).max(30).default(8),
   DB_CONNECT_RETRY_DELAY_MS: z.coerce.number().int().min(250).max(60000).default(2000),
   DB_REQUIRED_ON_START: z.preprocess(toBoolean, z.boolean().default(true)),
@@ -68,18 +65,9 @@ try {
   assertValidServiceUrl(parsed.data.DATABASE_URL, "DATABASE_URL", parsed.data.NODE_ENV);
   if (parsed.data.ENABLE_REDIS) {
     const hasRedisUrl = Boolean(parsed.data.REDIS_URL?.trim());
-    const hasRedisHost = Boolean(parsed.data.REDIS_HOST?.trim());
-    if (!hasRedisUrl && !hasRedisHost) {
-      throw new Error("ENABLE_REDIS=true exige REDIS_URL ou REDIS_HOST");
-    }
+    if (!hasRedisUrl) throw new Error("ENABLE_REDIS=true exige REDIS_URL");
     if (hasRedisUrl) {
       assertValidServiceUrl(parsed.data.REDIS_URL as string, "REDIS_URL", parsed.data.NODE_ENV);
-    }
-    if (hasRedisHost) {
-      const host = String(parsed.data.REDIS_HOST).trim().toLowerCase();
-      if (host === "host" || host === "<host>" || host === "redis_host") {
-        throw new Error("REDIS_HOST invalida: placeholder HOST nao substituido");
-      }
     }
   }
 } catch (error) {

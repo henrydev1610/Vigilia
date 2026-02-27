@@ -45,8 +45,8 @@ ENABLE_REDIS="${ENABLE_REDIS:-true}"
 AUTO_CREATE_DATABASE="${AUTO_CREATE_DATABASE:-true}"
 DB_HOST_RESOLVED="${DB_HOST:-$(extract_host_from_url "${DATABASE_URL:-}")}"
 DB_PORT_RESOLVED="${DB_PORT:-$(extract_port_from_url "${DATABASE_URL:-}")}"
-REDIS_HOST_RESOLVED="${REDIS_HOST:-$(extract_host_from_url "${REDIS_URL:-}")}"
-REDIS_PORT_RESOLVED="${REDIS_PORT:-$(extract_port_from_url "${REDIS_URL:-}")}"
+REDIS_HOST_RESOLVED="$(extract_host_from_url "${REDIS_URL:-}")"
+REDIS_PORT_RESOLVED="$(extract_port_from_url "${REDIS_URL:-}")"
 DB_HOST_ALIASES="${DB_HOST_ALIASES:-postgres,db}"
 
 if [ -z "$DB_PORT_RESOLVED" ]; then
@@ -186,8 +186,8 @@ if [ "${AUTO_CREATE_DATABASE}" = "true" ]; then
   fi
 fi
 
-if [ "${WAIT_FOR_REDIS:-true}" = "true" ] && [ "${ENABLE_REDIS}" = "true" ]; then
-  if ! wait_for_service "redis" "$REDIS_HOST_RESOLVED" "$REDIS_PORT_RESOLVED" "$WAIT_TIMEOUT_SECONDS"; then
+if [ "${WAIT_FOR_REDIS:-false}" = "true" ] && [ "${ENABLE_REDIS}" = "true" ]; then
+  if ! wait_for_service "redis-from-url" "$REDIS_HOST_RESOLVED" "$REDIS_PORT_RESOLVED" "$WAIT_TIMEOUT_SECONDS"; then
     if [ "$START_ON_DEPENDENCY_FAILURE" = "true" ]; then
       echo "[entrypoint] redis not reachable, continuing startup"
     else

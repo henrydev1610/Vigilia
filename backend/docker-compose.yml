@@ -15,7 +15,7 @@ services:
       RUN_MIGRATIONS: "true"
       SEED: "false"
       WAIT_FOR_DB: "true"
-      WAIT_FOR_REDIS: "true"
+      WAIT_FOR_REDIS: "false"
     command: npm run start
     ports:
       - "3334:3334"

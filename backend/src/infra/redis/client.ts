@@ -23,15 +23,7 @@ function createEmptyScanStream() {
 }
 
 function resolveRedisUrl() {
-  if (env.REDIS_URL?.trim()) {
-    return env.REDIS_URL.trim();
-  }
-  const host = env.REDIS_HOST?.trim();
-  if (!host) {
-    return null;
-  }
-  const passwordPart = env.REDIS_PASSWORD?.trim() ? `:${encodeURIComponent(env.REDIS_PASSWORD.trim())}@` : "";
-  return `redis://${passwordPart}${host}:${env.REDIS_PORT}`;
+  return env.REDIS_URL?.trim() || null;
 }
 
 class DisabledRedisClient implements RedisLikeClient {
@@ -192,7 +184,7 @@ function createRedisClient(): RedisLikeClient {
 
   const redisUrl = resolveRedisUrl();
   if (!redisUrl) {
-    console.warn("[redis] no REDIS_URL or REDIS_HOST provided, using disabled mode");
+    console.warn("[redis] no REDIS_URL provided, using disabled mode");
     return new DisabledRedisClient();
   }
   return new RedisClientAdapter(redisUrl);
