@@ -16,9 +16,9 @@ services:
       SEED: "false"
       WAIT_FOR_DB: "true"
       WAIT_FOR_REDIS: "true"
-    command: npm run dev
+    command: npm run start
     ports:
-      - "3334:3333"
+      - "3334:3334"
     volumes:
       - ./src:/app/src
       - ./prisma:/app/prisma
@@ -30,7 +30,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "node -e \"fetch('http://localhost:3333/health').then((r)=>r.ok?process.exit(0):process.exit(1)).catch(()=>process.exit(1))\""
+          "node -e \"fetch('http://localhost:3334/health').then((r)=>r.ok?process.exit(0):process.exit(1)).catch(()=>process.exit(1))\""
         ]
       interval: 15s
       timeout: 5s

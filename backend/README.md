@@ -65,6 +65,9 @@ Exemplo:
 - `DATABASE_URL=postgresql://postgres:SENHA@db_vigilia:5432/gasto_politico?schema=public`
 - `REDIS_URL=redis://:SENHA@redis:6379` (ou `redis://redis:6379` sem senha)
 - `RUN_MIGRATIONS=true`
+- `MIGRATION_MAX_RETRIES=8`
+- `MIGRATION_RETRY_DELAY_SECONDS=3`
+- `START_ON_MIGRATION_FAILURE=true`
 - `WAIT_FOR_DB=true`
 - `WAIT_FOR_REDIS=true`
 - `DB_CONNECT_MAX_RETRIES=8`
@@ -113,6 +116,7 @@ Se precisar, derrube processos que ocupam essas portas ou altere mapeamentos no 
 ## Endpoints principais
 - Health:
   - `GET /health` -> `200` com `status`, `uptime`, `version`, `timestamp`
+  - `GET /health/db` -> `200` quando DB disponivel, `503` quando indisponivel
 - Auth:
   - `POST /auth/register`
   - `POST /auth/login`

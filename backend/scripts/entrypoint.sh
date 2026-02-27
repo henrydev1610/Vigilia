@@ -37,6 +37,9 @@ wait_for_service() {
 }
 
 WAIT_TIMEOUT_SECONDS="${WAIT_TIMEOUT_SECONDS:-90}"
+MIGRATION_MAX_RETRIES="${MIGRATION_MAX_RETRIES:-8}"
+MIGRATION_RETRY_DELAY_SECONDS="${MIGRATION_RETRY_DELAY_SECONDS:-3}"
+START_ON_MIGRATION_FAILURE="${START_ON_MIGRATION_FAILURE:-true}"
 DB_HOST_RESOLVED="${DB_HOST:-$(extract_host_from_url "${DATABASE_URL:-}")}"
 DB_PORT_RESOLVED="${DB_PORT:-$(extract_port_from_url "${DATABASE_URL:-}")}"
 REDIS_HOST_RESOLVED="${REDIS_HOST:-$(extract_host_from_url "${REDIS_URL:-}")}"
@@ -58,8 +61,27 @@ if [ "${WAIT_FOR_REDIS:-true}" = "true" ]; then
 fi
 
 if [ "${RUN_MIGRATIONS:-true}" = "true" ]; then
-  echo "[entrypoint] running prisma migrate deploy"
-  npm run prisma:migrate
+  echo "[entrypoint] running prisma migrate deploy with retries"
+  migration_attempt=1
+  migration_ok="false"
+  while [ "$migration_attempt" -le "$MIGRATION_MAX_RETRIES" ]; do
+    if npm run prisma:migrate; then
+      migration_ok="true"
+      break
+    fi
+    echo "[entrypoint] migration attempt ${migration_attempt}/${MIGRATION_MAX_RETRIES} failed"
+    migration_attempt=$((migration_attempt + 1))
+    sleep "$MIGRATION_RETRY_DELAY_SECONDS"
+  done
+
+  if [ "$migration_ok" != "true" ]; then
+    if [ "$START_ON_MIGRATION_FAILURE" = "true" ]; then
+      echo "[entrypoint] migration failed after retries, starting app anyway"
+    else
+      echo "[entrypoint] migration failed after retries, exiting container"
+      exit 1
+    fi
+  fi
 fi
 
 if [ "${SEED:-false}" = "true" ]; then

@@ -4,6 +4,7 @@ import helmet from "@fastify/helmet";
 import jwt from "@fastify/jwt";
 import rateLimit from "@fastify/rate-limit";
 import { env } from "./config/env";
+import { prisma } from "./infra/db/prisma";
 import { errorHandler } from "./shared/errors/error-handler";
 import { AppError } from "./shared/errors/app-error";
 import { authRoutes } from "./modules/auth/auth.routes";
@@ -85,6 +86,26 @@ export async function buildApp() {
     timestamp: new Date().toISOString(),
     startedAt: new Date(bootStartedAt).toISOString(),
   }));
+
+  app.get("/health/db", async (_request, reply) => {
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      return {
+        status: "ok",
+        db: "reachable",
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error) {
+      app.log.error({
+        message: error instanceof Error ? error.message : String(error),
+      }, "database healthcheck failed");
+      return reply.status(503).send({
+        status: "degraded",
+        db: "unreachable",
+        timestamp: new Date().toISOString(),
+      });
+    }
+  });
 
   await app.register(authRoutes);
   await app.register(usersRoutes);
