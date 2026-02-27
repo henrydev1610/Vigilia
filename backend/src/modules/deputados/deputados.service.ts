@@ -37,6 +37,32 @@ export class DeputadosService {
   private readonly inFlight = new Map<string, Promise<unknown>>();
   private readonly syncJobs = new Map<string, Promise<unknown>>();
 
+  private async readCache<T>(cacheKey: string): Promise<T | null> {
+    try {
+      const cached = await redis.get(cacheKey);
+      if (!cached) return null;
+      return JSON.parse(cached) as T;
+    } catch (error) {
+      console.warn("[deputados] cache read failed, continuing without cache", {
+        cacheKey,
+        message: error instanceof Error ? error.message : String(error),
+      });
+      return null;
+    }
+  }
+
+  private async writeCache(cacheKey: string, value: unknown, ttlSeconds: number): Promise<void> {
+    try {
+      await redis.set(cacheKey, JSON.stringify(value), "EX", ttlSeconds);
+    } catch (error) {
+      console.warn("[deputados] cache write failed, continuing without cache", {
+        cacheKey,
+        ttlSeconds,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
   private parseMonthRef(monthRef: string) {
     const [yearRaw, monthRaw] = monthRef.split("-");
     const ano = Number(yearRaw);
@@ -136,9 +162,9 @@ export class DeputadosService {
     }
 
     const cacheKey = `cache:deputados:list:${JSON.stringify(input)}`;
-    const cached = await redis.get(cacheKey);
+    const cached = await this.readCache<{ data: unknown[]; meta: unknown }>(cacheKey);
     if (cached) {
-      return JSON.parse(cached);
+      return cached;
     }
 
     let { total, deputies } = await this.repository.list(input, input.pagina, input.itens);
@@ -158,16 +184,16 @@ export class DeputadosService {
       }
     };
 
-    await redis.set(cacheKey, JSON.stringify(response), "EX", SIX_HOURS_SECONDS);
+    await this.writeCache(cacheKey, response, SIX_HOURS_SECONDS);
     return response;
   }
 
   async listDeputiesByMonth(monthRef: string, filters?: DeputyFilters) {
     const { ano, mes } = this.parseMonthRef(monthRef);
     const cacheKey = `cache:deputados:mes:${monthRef}:${JSON.stringify(filters ?? {})}`;
-    const cached = await redis.get(cacheKey);
+    const cached = await this.readCache<{ data: unknown[]; meta: unknown }>(cacheKey);
     if (cached) {
-      return JSON.parse(cached);
+      return cached;
     }
 
     return this.withInflightDedup(cacheKey, async () => {
@@ -197,7 +223,7 @@ export class DeputadosService {
           generatedAt: new Date().toISOString(),
         },
       };
-      await redis.set(cacheKey, JSON.stringify(response), "EX", AGGREGATE_CACHE_TTL_SECONDS);
+      await this.writeCache(cacheKey, response, AGGREGATE_CACHE_TTL_SECONDS);
       return response;
     });
   }
@@ -205,9 +231,9 @@ export class DeputadosService {
   async getResumoByMonth(monthRef: string) {
     const { ano, mes } = this.parseMonthRef(monthRef);
     const cacheKey = `cache:deputados:resumo:${monthRef}`;
-    const cached = await redis.get(cacheKey);
+    const cached = await this.readCache<{ data: unknown; meta: unknown }>(cacheKey);
     if (cached) {
-      return JSON.parse(cached);
+      return cached;
     }
 
     return this.withInflightDedup(cacheKey, async () => {
@@ -242,16 +268,16 @@ export class DeputadosService {
         },
       };
 
-      await redis.set(cacheKey, JSON.stringify(response), "EX", AGGREGATE_CACHE_TTL_SECONDS);
+      await this.writeCache(cacheKey, response, AGGREGATE_CACHE_TTL_SECONDS);
       return response;
     });
   }
 
   async getDeputyById(id: number) {
     const cacheKey = `cache:deputados:detail:${id}`;
-    const cached = await redis.get(cacheKey);
+    const cached = await this.readCache<Record<string, unknown>>(cacheKey);
     if (cached) {
-      const parsed = JSON.parse(cached) as { salario?: number | null };
+      const parsed = cached as { salario?: number | null };
       if (Object.prototype.hasOwnProperty.call(parsed, "salario")) {
         return parsed;
       }
@@ -280,15 +306,15 @@ export class DeputadosService {
     const salario = await this.salarioService.getCurrentSalary();
     const response = { ...deputy, salario };
 
-    await redis.set(cacheKey, JSON.stringify(response), "EX", SIX_HOURS_SECONDS);
+    await this.writeCache(cacheKey, response, SIX_HOURS_SECONDS);
     return response;
   }
 
   async listMonthlyTotals(ano: number, mes: number, limit: number, offset: number, page: number) {
     const cacheKey = `cache:deputados:totais-mes:${ano}:${mes}:${limit}:${offset}`;
-    const cached = await redis.get(cacheKey);
+    const cached = await this.readCache<{ data: unknown[]; meta: unknown }>(cacheKey);
     if (cached) {
-      return JSON.parse(cached);
+      return cached;
     }
 
     const rows = await this.repository.listMonthlyTotals(ano, mes, limit, offset);
@@ -305,7 +331,7 @@ export class DeputadosService {
       }
     };
 
-    await redis.set(cacheKey, JSON.stringify(response), "EX", 60 * 5);
+    await this.writeCache(cacheKey, response, 60 * 5);
     return response;
   }
 

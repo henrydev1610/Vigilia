@@ -8,16 +8,28 @@ export class SalarioService {
   private readonly camaraClient = new CamaraClient();
 
   async getCurrentSalary(): Promise<number | null> {
-    const cached = await redis.get(SALARY_CACHE_KEY);
-    if (cached) {
-      const parsed = Number(cached);
-      return Number.isNaN(parsed) ? null : parsed;
+    try {
+      const cached = await redis.get(SALARY_CACHE_KEY);
+      if (cached) {
+        const parsed = Number(cached);
+        return Number.isNaN(parsed) ? null : parsed;
+      }
+    } catch (error) {
+      console.warn("[deputados] salary cache read failed", {
+        message: error instanceof Error ? error.message : String(error),
+      });
     }
 
     try {
       const value = await this.camaraClient.getDeputySalaryFromPortal();
       if (value !== null) {
-        await redis.set(SALARY_CACHE_KEY, String(value), "EX", ONE_DAY_SECONDS);
+        try {
+          await redis.set(SALARY_CACHE_KEY, String(value), "EX", ONE_DAY_SECONDS);
+        } catch (error) {
+          console.warn("[deputados] salary cache write failed", {
+            message: error instanceof Error ? error.message : String(error),
+          });
+        }
       }
       return value;
     } catch {
