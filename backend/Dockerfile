@@ -2,7 +2,7 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-RUN apk add --no-cache bash netcat-openbsd wget
+RUN apk add --no-cache bash netcat-openbsd wget postgresql-client
 ENV NODE_ENV=production
 
 COPY package*.json ./

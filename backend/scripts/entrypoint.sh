@@ -42,6 +42,7 @@ MIGRATION_RETRY_DELAY_SECONDS="${MIGRATION_RETRY_DELAY_SECONDS:-3}"
 START_ON_MIGRATION_FAILURE="${START_ON_MIGRATION_FAILURE:-true}"
 START_ON_DEPENDENCY_FAILURE="${START_ON_DEPENDENCY_FAILURE:-true}"
 ENABLE_REDIS="${ENABLE_REDIS:-true}"
+AUTO_CREATE_DATABASE="${AUTO_CREATE_DATABASE:-true}"
 DB_HOST_RESOLVED="${DB_HOST:-$(extract_host_from_url "${DATABASE_URL:-}")}"
 DB_PORT_RESOLVED="${DB_PORT:-$(extract_port_from_url "${DATABASE_URL:-}")}"
 REDIS_HOST_RESOLVED="${REDIS_HOST:-$(extract_host_from_url "${REDIS_URL:-}")}"
@@ -61,6 +62,27 @@ if [ "${WAIT_FOR_DB:-true}" = "true" ]; then
     else
       echo "[entrypoint] postgres not reachable, exiting container"
       exit 1
+    fi
+  fi
+fi
+
+extract_db_name_from_url() {
+  printf "%s" "$1" | sed -E 's#^[a-zA-Z0-9+.-]+://[^/]+/([^?]+).*$#\1#'
+}
+
+build_admin_db_url() {
+  printf "%s" "$1" | sed -E 's#(^[a-zA-Z0-9+.-]+://[^/]+/)[^?]+#\1postgres#'
+}
+
+if [ "${AUTO_CREATE_DATABASE}" = "true" ]; then
+  TARGET_DB_NAME="$(extract_db_name_from_url "${DATABASE_URL:-}")"
+  ADMIN_DATABASE_URL="${DATABASE_ADMIN_URL:-$(build_admin_db_url "${DATABASE_URL:-}")}"
+  if [ -n "$TARGET_DB_NAME" ] && [ -n "$ADMIN_DATABASE_URL" ]; then
+    echo "[entrypoint] checking database existence: ${TARGET_DB_NAME}"
+    DB_EXISTS="$(psql "${ADMIN_DATABASE_URL}" -tAc "SELECT 1 FROM pg_database WHERE datname='${TARGET_DB_NAME}'" 2>/dev/null || true)"
+    if [ "${DB_EXISTS}" != "1" ]; then
+      echo "[entrypoint] creating missing database: ${TARGET_DB_NAME}"
+      psql "${ADMIN_DATABASE_URL}" -c "CREATE DATABASE \"${TARGET_DB_NAME}\";" || true
     fi
   fi
 fi

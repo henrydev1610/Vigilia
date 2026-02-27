@@ -63,10 +63,12 @@ Pontos criticos para evitar erro Prisma `P1001`:
 
 Exemplo:
 - `DATABASE_URL=postgresql://postgres:SENHA@db_vigilia:5432/gasto_politico?schema=public`
+- `DATABASE_ADMIN_URL=postgresql://postgres:SENHA@db_vigilia:5432/postgres` (opcional; usado para criar DB se faltar)
 - `REDIS_URL=redis://:SENHA@redis:6379` (ou `redis://redis:6379` sem senha)
 - `ENABLE_REDIS=true` (ou `false` para modo sem cache)
 - `REDIS_HOST=redis` + `REDIS_PORT=6379` + `REDIS_PASSWORD=` (alternativa ao REDIS_URL)
 - `RUN_MIGRATIONS=true`
+- `AUTO_CREATE_DATABASE=true`
 - `MIGRATION_MAX_RETRIES=8`
 - `MIGRATION_RETRY_DELAY_SECONDS=3`
 - `START_ON_MIGRATION_FAILURE=true`
@@ -75,6 +77,8 @@ Exemplo:
 - `WAIT_FOR_REDIS=true`
 - `DB_CONNECT_MAX_RETRIES=8`
 - `DB_CONNECT_RETRY_DELAY_MS=2000`
+
+Se o volume do Postgres ja existia sem `gasto_politico`, o entrypoint da API tenta criar o banco automaticamente antes de rodar migrations.
 
 ## CORS para Expo/React Native
 
