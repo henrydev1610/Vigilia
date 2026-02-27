@@ -68,27 +68,49 @@ class RedisClientAdapter implements RedisLikeClient {
   private retryAttempts = 0;
   private degradedMode = false;
   private lastErrorLogAt = 0;
+  private wasEverReady = false;
 
   constructor(redisUrl: string) {
     this.client = new Redis(redisUrl, {
-      maxRetriesPerRequest: 2,
+      lazyConnect: true,
+      enableOfflineQueue: false,
+      maxRetriesPerRequest: null,
       enableAutoPipelining: true,
       connectTimeout: 5000,
       retryStrategy: (times) => {
         this.retryAttempts = times;
-        if (times >= 8) {
-          this.degradedMode = true;
-          this.logErrorOncePerWindow("retry limit reached, entering degraded mode");
-          return null;
-        }
-        const backoffMs = Math.min(500 * times, 5000);
+        const backoffMs = Math.min(250 * Math.max(1, times), 5000);
+        this.degradedMode = true;
         return backoffMs;
       },
     });
 
+    this.client.on("connect", () => {
+      this.logInfoOncePerWindow("connecting");
+    });
+    this.client.on("ready", () => {
+      this.wasEverReady = true;
+      this.degradedMode = false;
+      this.retryAttempts = 0;
+      this.logInfoOncePerWindow("ready");
+    });
+    this.client.on("reconnecting", () => {
+      this.degradedMode = true;
+      this.logInfoOncePerWindow("reconnecting");
+    });
+    this.client.on("end", () => {
+      this.degradedMode = true;
+      this.logInfoOncePerWindow("connection ended");
+    });
     this.client.on("error", (error) => {
       const message = error instanceof Error ? error.message : String(error);
+      this.degradedMode = true;
       this.logErrorOncePerWindow(message);
+    });
+
+    this.client.connect().catch((error) => {
+      this.degradedMode = true;
+      this.logErrorOncePerWindow(error instanceof Error ? error.message : String(error));
     });
   }
 
@@ -102,6 +124,21 @@ class RedisClientAdapter implements RedisLikeClient {
       message,
       retryAttempts: this.retryAttempts,
       degradedMode: this.degradedMode,
+      wasEverReady: this.wasEverReady,
+    });
+  }
+
+  private logInfoOncePerWindow(message: string) {
+    const now = Date.now();
+    if (now - this.lastErrorLogAt < 15000) {
+      return;
+    }
+    this.lastErrorLogAt = now;
+    console.info("[redis] state", {
+      message,
+      retryAttempts: this.retryAttempts,
+      degradedMode: this.degradedMode,
+      wasEverReady: this.wasEverReady,
     });
   }
 
