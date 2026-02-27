@@ -40,6 +40,7 @@ WAIT_TIMEOUT_SECONDS="${WAIT_TIMEOUT_SECONDS:-90}"
 MIGRATION_MAX_RETRIES="${MIGRATION_MAX_RETRIES:-8}"
 MIGRATION_RETRY_DELAY_SECONDS="${MIGRATION_RETRY_DELAY_SECONDS:-3}"
 START_ON_MIGRATION_FAILURE="${START_ON_MIGRATION_FAILURE:-true}"
+START_ON_DEPENDENCY_FAILURE="${START_ON_DEPENDENCY_FAILURE:-true}"
 DB_HOST_RESOLVED="${DB_HOST:-$(extract_host_from_url "${DATABASE_URL:-}")}"
 DB_PORT_RESOLVED="${DB_PORT:-$(extract_port_from_url "${DATABASE_URL:-}")}"
 REDIS_HOST_RESOLVED="${REDIS_HOST:-$(extract_host_from_url "${REDIS_URL:-}")}"
@@ -53,11 +54,25 @@ if [ -z "$REDIS_PORT_RESOLVED" ]; then
 fi
 
 if [ "${WAIT_FOR_DB:-true}" = "true" ]; then
-  wait_for_service "postgres" "$DB_HOST_RESOLVED" "$DB_PORT_RESOLVED" "$WAIT_TIMEOUT_SECONDS"
+  if ! wait_for_service "postgres" "$DB_HOST_RESOLVED" "$DB_PORT_RESOLVED" "$WAIT_TIMEOUT_SECONDS"; then
+    if [ "$START_ON_DEPENDENCY_FAILURE" = "true" ]; then
+      echo "[entrypoint] postgres not reachable, continuing startup"
+    else
+      echo "[entrypoint] postgres not reachable, exiting container"
+      exit 1
+    fi
+  fi
 fi
 
 if [ "${WAIT_FOR_REDIS:-true}" = "true" ]; then
-  wait_for_service "redis" "$REDIS_HOST_RESOLVED" "$REDIS_PORT_RESOLVED" "$WAIT_TIMEOUT_SECONDS"
+  if ! wait_for_service "redis" "$REDIS_HOST_RESOLVED" "$REDIS_PORT_RESOLVED" "$WAIT_TIMEOUT_SECONDS"; then
+    if [ "$START_ON_DEPENDENCY_FAILURE" = "true" ]; then
+      echo "[entrypoint] redis not reachable, continuing startup"
+    else
+      echo "[entrypoint] redis not reachable, exiting container"
+      exit 1
+    fi
+  fi
 fi
 
 if [ "${RUN_MIGRATIONS:-true}" = "true" ]; then
