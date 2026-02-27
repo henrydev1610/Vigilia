@@ -49,6 +49,13 @@ REDIS_HOST_RESOLVED="$(extract_host_from_url "${REDIS_URL:-}")"
 REDIS_PORT_RESOLVED="$(extract_port_from_url "${REDIS_URL:-}")"
 DB_HOST_ALIASES="${DB_HOST_ALIASES:-postgres,db}"
 
+if [ -n "${REDIS_HOST:-}" ] || [ -n "${REDIS_PORT:-}" ] || [ -n "${REDIS_PASSWORD:-}" ]; then
+  echo "[entrypoint] ignoring legacy redis env vars (REDIS_HOST/REDIS_PORT/REDIS_PASSWORD), use REDIS_URL only"
+fi
+unset REDIS_HOST
+unset REDIS_PORT
+unset REDIS_PASSWORD
+
 if [ -z "$DB_PORT_RESOLVED" ]; then
   DB_PORT_RESOLVED="5432"
 fi

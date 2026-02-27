@@ -66,6 +66,7 @@ Exemplo:
 - `DATABASE_ADMIN_URL=postgresql://postgres:SENHA@postgres:5432/postgres` (opcional; usado para criar DB se faltar)
 - `REDIS_URL=redis://default:SENHA@backendvigilia-redis-cyzanf:6379`
 - `ENABLE_REDIS=true` (ou `false` para modo sem cache)
+- nao use `REDIS_HOST`, `REDIS_PORT` ou `REDIS_PASSWORD` (legados e rejeitados no startup)
 - `RUN_MIGRATIONS=true`
 - `AUTO_CREATE_DATABASE=true`
 - `MIGRATION_MAX_RETRIES=8`
