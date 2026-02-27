@@ -41,6 +41,7 @@ MIGRATION_MAX_RETRIES="${MIGRATION_MAX_RETRIES:-8}"
 MIGRATION_RETRY_DELAY_SECONDS="${MIGRATION_RETRY_DELAY_SECONDS:-3}"
 START_ON_MIGRATION_FAILURE="${START_ON_MIGRATION_FAILURE:-true}"
 START_ON_DEPENDENCY_FAILURE="${START_ON_DEPENDENCY_FAILURE:-true}"
+ENABLE_REDIS="${ENABLE_REDIS:-true}"
 DB_HOST_RESOLVED="${DB_HOST:-$(extract_host_from_url "${DATABASE_URL:-}")}"
 DB_PORT_RESOLVED="${DB_PORT:-$(extract_port_from_url "${DATABASE_URL:-}")}"
 REDIS_HOST_RESOLVED="${REDIS_HOST:-$(extract_host_from_url "${REDIS_URL:-}")}"
@@ -64,7 +65,7 @@ if [ "${WAIT_FOR_DB:-true}" = "true" ]; then
   fi
 fi
 
-if [ "${WAIT_FOR_REDIS:-true}" = "true" ]; then
+if [ "${WAIT_FOR_REDIS:-true}" = "true" ] && [ "${ENABLE_REDIS}" = "true" ]; then
   if ! wait_for_service "redis" "$REDIS_HOST_RESOLVED" "$REDIS_PORT_RESOLVED" "$WAIT_TIMEOUT_SECONDS"; then
     if [ "$START_ON_DEPENDENCY_FAILURE" = "true" ]; then
       echo "[entrypoint] redis not reachable, continuing startup"
@@ -73,6 +74,8 @@ if [ "${WAIT_FOR_REDIS:-true}" = "true" ]; then
       exit 1
     fi
   fi
+elif [ "${ENABLE_REDIS}" != "true" ]; then
+  echo "[entrypoint] redis disabled by ENABLE_REDIS=${ENABLE_REDIS}"
 fi
 
 if [ "${RUN_MIGRATIONS:-true}" = "true" ]; then

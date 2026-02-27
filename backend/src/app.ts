@@ -5,6 +5,7 @@ import jwt from "@fastify/jwt";
 import rateLimit from "@fastify/rate-limit";
 import { env } from "./config/env";
 import { prisma } from "./infra/db/prisma";
+import { redis } from "./infra/redis/client";
 import { errorHandler } from "./shared/errors/error-handler";
 import { AppError } from "./shared/errors/app-error";
 import { authRoutes } from "./modules/auth/auth.routes";
@@ -105,6 +106,30 @@ export async function buildApp() {
         timestamp: new Date().toISOString(),
       });
     }
+  });
+
+  app.get("/health/redis", async (_request, reply) => {
+    if (!redis.enabled) {
+      return {
+        status: "degraded",
+        redis: "disabled",
+        timestamp: new Date().toISOString(),
+      };
+    }
+
+    const pong = await redis.ping();
+    if (pong === "PONG") {
+      return {
+        status: "ok",
+        redis: "reachable",
+        timestamp: new Date().toISOString(),
+      };
+    }
+    return reply.status(503).send({
+      status: "degraded",
+      redis: "unreachable",
+      timestamp: new Date().toISOString(),
+    });
   });
 
   await app.register(authRoutes);
