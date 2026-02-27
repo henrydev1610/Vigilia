@@ -3,6 +3,7 @@ import { SafeParseReturnType } from "zod";
 import { AuthService } from "./auth.service";
 import { loginSchema, refreshSchema, registerSchema } from "./auth.schemas";
 import { AppError } from "../../shared/errors/app-error";
+import { classifyPrismaError } from "../../shared/errors/prisma-error";
 import type { LoginPayload } from "./auth.types";
 
 function parseOrThrow<T>(result: SafeParseReturnType<unknown, T>, message = "Dados invalidos"): T {
@@ -14,9 +15,36 @@ export async function authRoutes(app: FastifyInstance) {
   const authService = new AuthService(app);
 
   app.post("/auth/register", async (request, reply) => {
-    const body = parseOrThrow(registerSchema.safeParse(request.body));
-    const data = await authService.register(body);
-    return reply.status(201).send({ success: true, data });
+    try {
+      const body = parseOrThrow(registerSchema.safeParse(request.body));
+      const data = await authService.register(body);
+      return reply.status(201).send({ success: true, data });
+    } catch (error) {
+      const prismaKind = classifyPrismaError(error);
+      if (prismaKind === "unique") {
+        throw new AppError("Email ja cadastrado", 409, "EMAIL_IN_USE");
+      }
+      if (prismaKind === "connectivity") {
+        throw new AppError("Banco de dados indisponivel no momento", 503, "DATABASE_UNAVAILABLE");
+      }
+      if (prismaKind === "schema") {
+        throw new AppError(
+          "Banco de dados ainda nao esta pronto (migrations pendentes)",
+          503,
+          "DATABASE_SCHEMA_UNAVAILABLE"
+        );
+      }
+      app.log.error(
+        {
+          route: "/auth/register",
+          message: error instanceof Error ? error.message : String(error),
+          name: error instanceof Error ? error.name : "UnknownError",
+          stack: error instanceof Error ? error.stack : undefined
+        },
+        "register failed"
+      );
+      throw error;
+    }
   });
 
   app.post("/auth/login", async (request) => {

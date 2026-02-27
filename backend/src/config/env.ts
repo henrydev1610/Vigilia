@@ -45,6 +45,7 @@ const envSchema = z.object({
   REDIS_PASSWORD: z.string().optional(),
   DB_CONNECT_MAX_RETRIES: z.coerce.number().int().min(1).max(30).default(8),
   DB_CONNECT_RETRY_DELAY_MS: z.coerce.number().int().min(250).max(60000).default(2000),
+  DB_REQUIRED_ON_START: z.preprocess(toBoolean, z.boolean().default(true)),
   JWT_ACCESS_SECRET: z.string().min(32),
   JWT_REFRESH_SECRET: z.string().min(32),
   JWT_ACCESS_EXPIRES_IN: z.string().default("15m"),
