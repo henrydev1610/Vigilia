@@ -1,6 +1,7 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import { ZodError } from "zod";
 import { AppError } from "./app-error";
+import { classifyPrismaError } from "./prisma-error";
 
 type ZodLikeError = Error & {
   name?: string;
@@ -12,13 +13,6 @@ function isZodLikeError(error: unknown): error is ZodLikeError {
   if (error instanceof ZodError) return true;
   const maybe = error as ZodLikeError;
   return maybe.name === "ZodError" && Array.isArray(maybe.issues);
-}
-
-function isPrismaConnectivityError(error: unknown) {
-  if (!(error instanceof Error)) return false;
-  const prismaInit = error.name === "PrismaClientInitializationError";
-  const unreachable = /can't reach database server|p1001|connect|database server/i.test(error.message);
-  return prismaInit || unreachable;
 }
 
 export function errorHandler(error: Error, request: FastifyRequest, reply: FastifyReply): void {
@@ -66,12 +60,24 @@ export function errorHandler(error: Error, request: FastifyRequest, reply: Fasti
     return;
   }
 
-  if (isPrismaConnectivityError(error)) {
+  const prismaKind = classifyPrismaError(error);
+  if (prismaKind === "connectivity") {
     reply.status(503).send({
       success: false,
       error: {
         code: "DATABASE_UNAVAILABLE",
         message: "Banco de dados indisponivel no momento"
+      }
+    });
+    return;
+  }
+
+  if (prismaKind === "schema") {
+    reply.status(503).send({
+      success: false,
+      error: {
+        code: "DATABASE_SCHEMA_UNAVAILABLE",
+        message: "Banco de dados ainda nao esta pronto (migrations pendentes)"
       }
     });
     return;

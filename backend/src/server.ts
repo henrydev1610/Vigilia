@@ -17,14 +17,14 @@ async function warmDatabaseConnection() {
       await prisma.$queryRaw`SELECT 1`;
       // Prime db connection pool for first real requests.
       console.info(`[startup] database connected on attempt ${attempt}`);
-      return;
+      return true;
     } catch (error) {
       if (attempt >= totalAttempts) {
         console.error("[startup] database still unavailable after retries", {
           attempts: totalAttempts,
           reason: error instanceof Error ? error.message : String(error),
         });
-        return;
+        return false;
       }
       const jitter = Math.floor(Math.random() * 300);
       const delayMs = Math.min(env.DB_CONNECT_RETRY_DELAY_MS * attempt + jitter, 15000);
@@ -35,9 +35,17 @@ async function warmDatabaseConnection() {
       await sleep(delayMs);
     }
   }
+
+  return false;
 }
 
 async function bootstrap() {
+  const dbConnected = await warmDatabaseConnection();
+  if (!dbConnected && env.DB_REQUIRED_ON_START) {
+    console.error("[startup] aborting process because DB is required on startup");
+    process.exit(1);
+  }
+
   const app = await buildApp();
 
   try {
@@ -49,8 +57,6 @@ async function bootstrap() {
     app.log.error(error);
     process.exit(1);
   }
-
-  void warmDatabaseConnection();
 
   const close = async () => {
     await app.close();

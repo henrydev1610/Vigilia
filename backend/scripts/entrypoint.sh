@@ -40,19 +40,85 @@ WAIT_TIMEOUT_SECONDS="${WAIT_TIMEOUT_SECONDS:-90}"
 MIGRATION_MAX_RETRIES="${MIGRATION_MAX_RETRIES:-8}"
 MIGRATION_RETRY_DELAY_SECONDS="${MIGRATION_RETRY_DELAY_SECONDS:-3}"
 START_ON_MIGRATION_FAILURE="${START_ON_MIGRATION_FAILURE:-false}"
-START_ON_DEPENDENCY_FAILURE="${START_ON_DEPENDENCY_FAILURE:-true}"
+START_ON_DEPENDENCY_FAILURE="${START_ON_DEPENDENCY_FAILURE:-}"
 ENABLE_REDIS="${ENABLE_REDIS:-true}"
 AUTO_CREATE_DATABASE="${AUTO_CREATE_DATABASE:-true}"
 DB_HOST_RESOLVED="${DB_HOST:-$(extract_host_from_url "${DATABASE_URL:-}")}"
 DB_PORT_RESOLVED="${DB_PORT:-$(extract_port_from_url "${DATABASE_URL:-}")}"
 REDIS_HOST_RESOLVED="${REDIS_HOST:-$(extract_host_from_url "${REDIS_URL:-}")}"
 REDIS_PORT_RESOLVED="${REDIS_PORT:-$(extract_port_from_url "${REDIS_URL:-}")}"
+DB_HOST_ALIASES="${DB_HOST_ALIASES:-postgres,db}"
 
 if [ -z "$DB_PORT_RESOLVED" ]; then
   DB_PORT_RESOLVED="5432"
 fi
 if [ -z "$REDIS_PORT_RESOLVED" ]; then
   REDIS_PORT_RESOLVED="6379"
+fi
+
+if [ -z "$START_ON_DEPENDENCY_FAILURE" ]; then
+  if [ "${NODE_ENV:-production}" = "production" ]; then
+    START_ON_DEPENDENCY_FAILURE="false"
+  else
+    START_ON_DEPENDENCY_FAILURE="true"
+  fi
+fi
+
+replace_url_host() {
+  original="$1"
+  replacement="$2"
+  if [ -z "$original" ] || [ -z "$replacement" ]; then
+    printf "%s" "$original"
+    return
+  fi
+  printf "%s" "$original" | sed -E \
+    -e "s#^([a-zA-Z0-9+.-]+://[^/@]+@)[^/:?]+#\1${replacement}#" \
+    -e "t updated" \
+    -e "s#^([a-zA-Z0-9+.-]+://)[^/:?]+#\1${replacement}#" \
+    -e ":updated"
+}
+
+resolve_reachable_db_host() {
+  host_candidates="$1"
+  current_host="$2"
+  current_port="$3"
+
+  if [ -n "$current_host" ] && nc -z "$current_host" "$current_port" >/dev/null 2>&1; then
+    printf "%s" "$current_host"
+    return
+  fi
+
+  OLD_IFS="$IFS"
+  IFS=','
+  for host in $host_candidates; do
+    host_trimmed="$(printf "%s" "$host" | tr -d '[:space:]')"
+    if [ -z "$host_trimmed" ]; then
+      continue
+    fi
+    if nc -z "$host_trimmed" "$current_port" >/dev/null 2>&1; then
+      IFS="$OLD_IFS"
+      printf "%s" "$host_trimmed"
+      return
+    fi
+  done
+  IFS="$OLD_IFS"
+
+  printf "%s" "$current_host"
+}
+
+if [ -n "$DATABASE_URL" ]; then
+  db_host_probe_candidates="${DB_HOST_RESOLVED},${DB_HOST_ALIASES}"
+  REACHABLE_DB_HOST="$(resolve_reachable_db_host "$db_host_probe_candidates" "$DB_HOST_RESOLVED" "$DB_PORT_RESOLVED")"
+  if [ -n "$REACHABLE_DB_HOST" ] && [ "$REACHABLE_DB_HOST" != "$DB_HOST_RESOLVED" ]; then
+    echo "[entrypoint] switched DB host from ${DB_HOST_RESOLVED} to ${REACHABLE_DB_HOST} after connectivity probe"
+    DB_HOST_RESOLVED="$REACHABLE_DB_HOST"
+    DATABASE_URL="$(replace_url_host "${DATABASE_URL}" "${REACHABLE_DB_HOST}")"
+    export DATABASE_URL
+    if [ -n "${DATABASE_ADMIN_URL:-}" ]; then
+      DATABASE_ADMIN_URL="$(replace_url_host "${DATABASE_ADMIN_URL}" "${REACHABLE_DB_HOST}")"
+      export DATABASE_ADMIN_URL
+    fi
+  fi
 fi
 
 if [ "${WAIT_FOR_DB:-true}" = "true" ]; then
@@ -86,13 +152,36 @@ if [ "${AUTO_CREATE_DATABASE}" = "true" ]; then
   if [ -n "$TARGET_DB_NAME" ] && [ -n "$ADMIN_DATABASE_URL" ]; then
     echo "[entrypoint] checking database existence: ${TARGET_DB_NAME}"
     DB_EXISTS="$(psql "${ADMIN_DATABASE_URL}" -tAc "SELECT 1 FROM pg_database WHERE datname='${TARGET_DB_NAME}'" 2>/dev/null || true)"
+    if [ -z "${DB_EXISTS}" ]; then
+      echo "[entrypoint] could not check database existence via admin connection"
+      if [ "$START_ON_DEPENDENCY_FAILURE" = "true" ]; then
+        echo "[entrypoint] proceeding despite admin connection failure"
+      else
+        echo "[entrypoint] failing startup due to admin connection failure"
+        exit 1
+      fi
+    fi
     if [ "${DB_EXISTS}" != "1" ]; then
       echo "[entrypoint] creating missing database: ${TARGET_DB_NAME}"
-      psql "${ADMIN_DATABASE_URL}" -c "CREATE DATABASE \"${TARGET_DB_NAME}\";" || true
+      if ! psql "${ADMIN_DATABASE_URL}" -c "CREATE DATABASE \"${TARGET_DB_NAME}\";"; then
+        if [ "$START_ON_DEPENDENCY_FAILURE" = "true" ]; then
+          echo "[entrypoint] create database failed, continuing startup"
+        else
+          echo "[entrypoint] create database failed, exiting container"
+          exit 1
+        fi
+      fi
     fi
     if [ -n "${TARGET_DB_USER}" ]; then
       echo "[entrypoint] ensuring privileges on ${TARGET_DB_NAME} for ${TARGET_DB_USER}"
-      psql "${ADMIN_DATABASE_URL}" -c "GRANT ALL PRIVILEGES ON DATABASE \"${TARGET_DB_NAME}\" TO \"${TARGET_DB_USER}\";" || true
+      if ! psql "${ADMIN_DATABASE_URL}" -c "GRANT ALL PRIVILEGES ON DATABASE \"${TARGET_DB_NAME}\" TO \"${TARGET_DB_USER}\";"; then
+        if [ "$START_ON_DEPENDENCY_FAILURE" = "true" ]; then
+          echo "[entrypoint] grant privileges failed, continuing startup"
+        else
+          echo "[entrypoint] grant privileges failed, exiting container"
+          exit 1
+        fi
+      fi
     fi
   fi
 fi
