@@ -39,7 +39,7 @@ wait_for_service() {
 WAIT_TIMEOUT_SECONDS="${WAIT_TIMEOUT_SECONDS:-90}"
 MIGRATION_MAX_RETRIES="${MIGRATION_MAX_RETRIES:-8}"
 MIGRATION_RETRY_DELAY_SECONDS="${MIGRATION_RETRY_DELAY_SECONDS:-3}"
-START_ON_MIGRATION_FAILURE="${START_ON_MIGRATION_FAILURE:-true}"
+START_ON_MIGRATION_FAILURE="${START_ON_MIGRATION_FAILURE:-false}"
 START_ON_DEPENDENCY_FAILURE="${START_ON_DEPENDENCY_FAILURE:-true}"
 ENABLE_REDIS="${ENABLE_REDIS:-true}"
 AUTO_CREATE_DATABASE="${AUTO_CREATE_DATABASE:-true}"
@@ -74,8 +74,14 @@ build_admin_db_url() {
   printf "%s" "$1" | sed -E 's#(^[a-zA-Z0-9+.-]+://[^/]+/)[^?]+#\1postgres#'
 }
 
+extract_db_user_from_url() {
+  # Handles: postgresql://user:pass@host:5432/db
+  printf "%s" "$1" | sed -nE 's#^[a-zA-Z0-9+.-]+://([^:/@?]+)(:[^@?]*)?@.*#\1#p'
+}
+
 if [ "${AUTO_CREATE_DATABASE}" = "true" ]; then
   TARGET_DB_NAME="$(extract_db_name_from_url "${DATABASE_URL:-}")"
+  TARGET_DB_USER="$(extract_db_user_from_url "${DATABASE_URL:-}")"
   ADMIN_DATABASE_URL="${DATABASE_ADMIN_URL:-$(build_admin_db_url "${DATABASE_URL:-}")}"
   if [ -n "$TARGET_DB_NAME" ] && [ -n "$ADMIN_DATABASE_URL" ]; then
     echo "[entrypoint] checking database existence: ${TARGET_DB_NAME}"
@@ -83,6 +89,10 @@ if [ "${AUTO_CREATE_DATABASE}" = "true" ]; then
     if [ "${DB_EXISTS}" != "1" ]; then
       echo "[entrypoint] creating missing database: ${TARGET_DB_NAME}"
       psql "${ADMIN_DATABASE_URL}" -c "CREATE DATABASE \"${TARGET_DB_NAME}\";" || true
+    fi
+    if [ -n "${TARGET_DB_USER}" ]; then
+      echo "[entrypoint] ensuring privileges on ${TARGET_DB_NAME} for ${TARGET_DB_USER}"
+      psql "${ADMIN_DATABASE_URL}" -c "GRANT ALL PRIVILEGES ON DATABASE \"${TARGET_DB_NAME}\" TO \"${TARGET_DB_USER}\";" || true
     fi
   fi
 fi
