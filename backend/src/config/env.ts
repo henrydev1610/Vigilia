@@ -1,7 +1,9 @@
 import dotenv from "dotenv";
 import { z } from "zod";
 
-dotenv.config();
+if (process.env.NODE_ENV !== "production") {
+  dotenv.config();
+}
 
 const LEGACY_REDIS_ENV_KEYS = ["REDIS_HOST", "REDIS_PORT", "REDIS_PASSWORD"] as const;
 

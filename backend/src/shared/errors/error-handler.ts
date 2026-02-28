@@ -16,10 +16,11 @@ function isZodLikeError(error: unknown): error is ZodLikeError {
 }
 
 export function errorHandler(error: Error, request: FastifyRequest, reply: FastifyReply): void {
+  const routeUrl = request.routeOptions?.url ?? request.url;
   request.log.error({
     requestId: request.id,
     method: request.method,
-    route: request.routerPath ?? request.url,
+    route: routeUrl,
     message: error.message,
     name: error.name,
     stack: error.stack,
