@@ -151,7 +151,13 @@ class RedisClientAdapter implements RedisLikeClient {
   }
 
   async set(...args: RedisSetArgs) {
-    return this.runOrFallback(() => this.client.set(...args), null);
+    if (args.length === 4) {
+      const [key, value, mode, ttlSeconds] = args;
+      return this.runOrFallback(() => this.client.set(key, value, mode, ttlSeconds), null);
+    }
+
+    const [key, value] = args;
+    return this.runOrFallback(() => this.client.set(key, value), null);
   }
 
   async del(...keys: string[]) {

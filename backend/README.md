@@ -56,6 +56,11 @@ Variaveis relevantes no `docker-compose.yml`:
 
 ## Deploy no Dokploy (producao)
 
+Configuracao de path obrigatoria no Dokploy para este repositorio:
+- `Build Path`: `backend`
+- campo de arquivo de env no Dokploy: use `.env` (raiz do Build Path) ou deixe vazio
+- nunca use `backend/.env` quando o Build Path ja e `backend`, pois isso gera tentativa de escrita em `backend/backend/.env`
+
 Pontos criticos para evitar erro Prisma `P1001`:
 - `DATABASE_URL` deve usar o hostname interno do servico Postgres no Dokploy (normalmente o nome do servico: `postgres`).
 - nao use `HOST` placeholder nem `localhost` em producao.
