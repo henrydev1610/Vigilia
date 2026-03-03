@@ -16,6 +16,16 @@ function normalize(value?: string): string {
   return (value ?? "").trim().toLowerCase();
 }
 
+function normalizeCategoryText(value?: string): string {
+  return (value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
 function resolveBrazilMonthYear() {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Sao_Paulo",
@@ -92,7 +102,7 @@ export class DespesasService {
     await this.syncExpenseTypes();
     const expenseTypes = await this.expenseTypesRepository.listAll();
     const expenseTypeMap = new Map<string, string>(
-      expenseTypes.map((item) => [normalize(item.label), item.id])
+      expenseTypes.map((item) => [normalizeCategoryText(item.label), item.id]),
     );
 
     let page = 1;
@@ -108,7 +118,15 @@ export class DespesasService {
       for (const expense of response.dados) {
         let expenseTypeId: string | undefined;
         if (expense.tipoDespesa) {
-          expenseTypeId = expenseTypeMap.get(normalize(expense.tipoDespesa));
+          const normalizedType = normalizeCategoryText(expense.tipoDespesa);
+          expenseTypeId = expenseTypeMap.get(normalizedType);
+
+          if (!expenseTypeId && normalizedType) {
+            const fallback = Array.from(expenseTypeMap.entries()).find(([label]) => {
+              return normalizedType.includes(label) || label.includes(normalizedType);
+            });
+            expenseTypeId = fallback?.[1];
+          }
         }
 
         await this.despesasRepository.upsertExpense({

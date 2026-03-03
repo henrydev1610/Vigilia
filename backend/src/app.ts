@@ -89,6 +89,14 @@ export async function buildApp() {
     startedAt: new Date(bootStartedAt).toISOString(),
   }));
 
+  app.get("/health/version", async () => ({
+    status: "ok",
+    version: apiVersion,
+    commit: process.env.APP_GIT_SHA || process.env.GIT_SHA || null,
+    timestamp: new Date().toISOString(),
+    startedAt: new Date(bootStartedAt).toISOString(),
+  }));
+
   app.get("/health/db", async (_request, reply) => {
     try {
       await prisma.$queryRaw`SELECT 1`;
