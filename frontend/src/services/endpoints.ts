@@ -131,6 +131,8 @@ export async function deleteMeRequest(input: DeleteMePayload) {
 export async function listDeputadosRequest(query: PaginatedQuery): Promise<{ data: Deputy[]; total?: number; meta?: any }> {
   const safeQuery = {
     ...query,
+    all: query.all ?? true,
+    mes: query.mesNumero,
     itens: clampLimit(query.itens, 100),
     pagina: clampPage(query.pagina),
   };
