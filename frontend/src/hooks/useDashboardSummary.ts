@@ -59,22 +59,33 @@ export function useDashboardSummary() {
       return buildEmptyDashboard();
     }
 
+    const rawCategoriesInput =
+      (query.data as any).categorias
+      ?? (query.data as any).categories
+      ?? [];
+
     const grouped = new Map<string, { total: number; percent: number }>();
 
-    (query.data.categorias ?? []).forEach((item) => {
-      const canonical = canonicalCategoryName(item.nome);
+    (Array.isArray(rawCategoriesInput) ? rawCategoriesInput : []).forEach((item: any) => {
+      const rawName = item?.nome ?? item?.name ?? '';
+      const canonical = canonicalCategoryName(rawName);
       const key = canonical === 'Outros' ? 'Outros' : canonical;
       const current = grouped.get(key) ?? { total: 0, percent: 0 };
+      const totalValue = Number(item?.total ?? item?.value ?? 0);
       grouped.set(key, {
-        total: current.total + Number(item.total || 0),
-        percent: current.percent + Number(item.percentual || 0),
+        total: current.total + totalValue,
+        percent: current.percent + Number(item?.percentual ?? item?.percent ?? 0),
       });
     });
+
+    const totalOfAllCategories = Array.from(grouped.values()).reduce((acc, item) => acc + Number(item.total || 0), 0);
 
     const categories = HOME_CATEGORY_ORDER.map((name) => {
       const category = grouped.get(name);
       const total = category?.total ?? 0;
-      const progress = Math.max(0, Math.min(1, (category?.percent ?? 0) / 100));
+      const progress = totalOfAllCategories > 0
+        ? Math.max(0, Math.min(1, total / totalOfAllCategories))
+        : 0;
       return {
         name,
         valueLabel: formatCurrencyBRL(total),
