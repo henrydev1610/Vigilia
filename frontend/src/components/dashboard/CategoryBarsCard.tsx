@@ -1,5 +1,5 @@
 ﻿import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { DashboardCategory } from '../../types/dashboard';
@@ -8,17 +8,24 @@ import { ProgressBar } from './ProgressBar';
 
 interface CategoryBarsCardProps {
   items: DashboardCategory[];
+  onPressSeeAll?: () => void;
 }
 
-export const CategoryBarsCard: React.FC<CategoryBarsCardProps> = ({ items }) => {
+export const CategoryBarsCard: React.FC<CategoryBarsCardProps> = ({ items, onPressSeeAll }) => {
+  if (__DEV__) {
+    // eslint-disable-next-line no-console
+    console.log('[dashboard] categoryBars.rendered.length', items.length);
+  }
+
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
         <View style={styles.titleWrap}>
           <Icon name="chart-bar" size={18} color="#22D663" />
           <Text style={[styles.sectionTitle, { fontFamily: fallbackFonts.headingBold }]}>Gastos por Categoria</Text>
-          <Text style={[styles.link, { fontFamily: fallbackFonts.bodyMedium }]}>Ver tudo</Text>
-        
+          <Pressable onPress={onPressSeeAll} hitSlop={8}>
+            <Text style={[styles.link, { fontFamily: fallbackFonts.bodyMedium }]}>Ver tudo</Text>
+          </Pressable>
         </View>
       </View>
 
@@ -42,31 +49,31 @@ const styles = StyleSheet.create({
     marginTop: 14,
   },
   sectionHeader: {
-    marginTop:30,
+    marginTop: 30,
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 10,
   },
   titleWrap: {
-    display:"flex",
+    display: 'flex',
     alignItems: 'center',
-    justifyContent: "space-between",
-    width:"100%",
-    paddingBottom:15,
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingBottom: 15,
     flexDirection: 'row',
     gap: 8,
   },
   sectionTitle: {
-    marginLeft:-100,
+    marginLeft: -100,
     color: '#EEF3EF',
     fontSize: 17,
-    fontWeight:'bold'
+    fontWeight: 'bold',
   },
   link: {
     color: '#1DCE59',
     fontSize: 15,
-    fontWeight:'bold'
+    fontWeight: 'bold',
   },
   card: {
     borderRadius: 18,

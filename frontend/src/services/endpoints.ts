@@ -11,6 +11,7 @@ import {
   DeputyListResponse,
   ExpenseType,
   FavoriteItem,
+  MonthExpensesResponse,
   LoginPayload,
   PaginatedQuery,
   RankingItem,
@@ -182,6 +183,21 @@ export async function syncDeputadosRequest() {
 export async function expenseTypesRequest(): Promise<ExpenseType[]> {
   const response = await api.get('/api/despesas/tipos');
   return extractList<ExpenseType>(response.data);
+}
+
+export async function monthExpensesRequest(params: { ano?: number; mes?: number; pagina?: number; itens?: number }): Promise<MonthExpensesResponse> {
+  const response = await api.get('/api/despesas', {
+    params: {
+      ano: params.ano,
+      mes: params.mes,
+      pagina: clampPage(params.pagina),
+      itens: clampLimit(params.itens, 100),
+    },
+  });
+  return {
+    data: extractList(response.data),
+    meta: response.data?.meta ?? {},
+  } as MonthExpensesResponse;
 }
 
 export async function deputyExpensesRequest(

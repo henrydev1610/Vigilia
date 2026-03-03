@@ -1,11 +1,10 @@
-import { useEffect, useMemo } from 'react';
+﻿import { useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { dashboardResumoRequest } from '../services/endpoints';
 import { DashboardData, DashboardRankingItem } from '../types/dashboard';
 import { formatCurrencyBRL } from '../utils/format';
 import { getApiErrorMessage } from '../utils/apiError';
-
-const CATEGORY_ORDER = ['Combustível', 'Passagens Aéreas', 'Manutenção Gabinete', 'Divulgação'] as const;
+import { canonicalCategoryName, HOME_CATEGORY_ORDER } from '../utils/expenseCategories';
 
 function buildEmptyDashboard(): DashboardData {
   return {
@@ -16,7 +15,7 @@ function buildEmptyDashboard(): DashboardData {
       amountLabel: formatCurrencyBRL(0),
     },
     yearDeltaPct: 0,
-    categories: CATEGORY_ORDER.map((name) => ({
+    categories: HOME_CATEGORY_ORDER.map((name) => ({
       name,
       valueLabel: formatCurrencyBRL(0),
       progress: 0,
@@ -60,20 +59,22 @@ export function useDashboardSummary() {
       return buildEmptyDashboard();
     }
 
-    const rawCategories = new Map(
-      (query.data.categorias ?? []).map((item) => [
-        String(item.nome),
-        {
-          total: Number(item.total || 0),
-          percentual: Number(item.percentual || 0),
-        },
-      ]),
-    );
+    const grouped = new Map<string, { total: number; percent: number }>();
 
-    const categories = CATEGORY_ORDER.map((name) => {
-      const category = rawCategories.get(name);
+    (query.data.categorias ?? []).forEach((item) => {
+      const canonical = canonicalCategoryName(item.nome);
+      const key = canonical === 'Outros' ? 'Outros' : canonical;
+      const current = grouped.get(key) ?? { total: 0, percent: 0 };
+      grouped.set(key, {
+        total: current.total + Number(item.total || 0),
+        percent: current.percent + Number(item.percentual || 0),
+      });
+    });
+
+    const categories = HOME_CATEGORY_ORDER.map((name) => {
+      const category = grouped.get(name);
       const total = category?.total ?? 0;
-      const progress = Math.max(0, Math.min(1, (category?.percentual ?? 0) / 100));
+      const progress = Math.max(0, Math.min(1, (category?.percent ?? 0) / 100));
       return {
         name,
         valueLabel: formatCurrencyBRL(total),
@@ -109,15 +110,10 @@ export function useDashboardSummary() {
   useEffect(() => {
     if (!__DEV__) return;
     // eslint-disable-next-line no-console
-    console.log('[dashboard] normalized.state', {
-      monthTotal: dashboard.monthTotal,
-      monthDeltaPct: dashboard.monthDeltaPct,
-      yearDeltaPct: dashboard.yearDeltaPct,
-      categories: dashboard.categories.length,
-      ranking: dashboard.ranking.length,
-      alertsCount: dashboard.alertsCount,
-    });
-  }, [dashboard]);
+    console.log('[dashboard] normalized.categories', dashboard.categories);
+    // eslint-disable-next-line no-console
+    console.log('[dashboard] rendered.categories.length', dashboard.categories.length);
+  }, [dashboard.categories]);
 
   return {
     ano,

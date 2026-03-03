@@ -1,6 +1,8 @@
 ﻿import React, { useMemo } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { useNavigation } from '@react-navigation/native';
 import { ErrorBanner, LoadingState, Screen } from '../../components/ui';
 import {
   CategoryBarsCard,
@@ -10,9 +12,11 @@ import {
   StatCardSmall,
 } from '../../components/dashboard';
 import { useDashboardSummary } from '../../hooks';
+import { AppTabParamList } from '../../navigation/types';
 
 export const DashboardScreen: React.FC = () => {
-  const { dashboard, loading, refreshing, error, refresh } = useDashboardSummary();
+  const navigation = useNavigation<BottomTabNavigationProp<AppTabParamList>>();
+  const { ano, mes, dashboard, loading, refreshing, error, refresh } = useDashboardSummary();
 
   const annualLine1 = useMemo(() => {
     const value = Number(dashboard.yearDeltaPct || 0);
@@ -63,7 +67,10 @@ export const DashboardScreen: React.FC = () => {
             />
           </View>
 
-          <CategoryBarsCard items={dashboard.categories} />
+          <CategoryBarsCard
+            items={dashboard.categories}
+            onPressSeeAll={() => navigation.navigate('Gastos', { ano, mes })}
+          />
           <StateListCard
             title="Ranking do Mês"
             icon="podium-gold"

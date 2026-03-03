@@ -1,6 +1,7 @@
-import { Prisma } from "@prisma/client";
+﻿import { Prisma } from "@prisma/client";
 import { redis } from "../../infra/redis/client";
 import { prisma } from "../../infra/db/prisma";
+import { getExpenseCategoriesByMonth } from "../despesas/expense-categories";
 
 const DASHBOARD_CACHE_TTL_SECONDS = 60 * 5;
 
@@ -26,19 +27,13 @@ type RankingItem = {
 };
 
 function toNumberValue(value: unknown): number {
-  if (typeof value === "number") {
-    return Number.isFinite(value) ? value : 0;
-  }
-  if (typeof value === "bigint") {
-    return Number(value);
-  }
+  if (typeof value === "number") return Number.isFinite(value) ? value : 0;
+  if (typeof value === "bigint") return Number(value);
   if (typeof value === "string") {
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : 0;
   }
-  if (value instanceof Prisma.Decimal) {
-    return value.toNumber();
-  }
+  if (value instanceof Prisma.Decimal) return value.toNumber();
   return 0;
 }
 
@@ -47,9 +42,7 @@ function roundTo2(value: number): number {
 }
 
 function calculateVariation(current: number, previous: number): number {
-  if (previous === 0) {
-    return current > 0 ? 100 : 0;
-  }
+  if (previous === 0) return current > 0 ? 100 : 0;
   return roundTo2(((current - previous) / previous) * 100);
 }
 
@@ -73,13 +66,11 @@ function resolveBrazilMonthYear() {
 }
 
 function previousMonth(ano: number, mes: number) {
-  if (mes === 1) {
-    return { ano: ano - 1, mes: 12 };
-  }
+  if (mes === 1) return { ano: ano - 1, mes: 12 };
   return { ano, mes: mes - 1 };
 }
 
-function normalizeCategories(rawCategories: Array<{ nome: string; total: number }>, monthTotal: number): MonthCategory[] {
+function normalizeCategories(rawCategories: Array<{ name: string; total: number }>, monthTotal: number): MonthCategory[] {
   const expectedOrder: MonthCategory["nome"][] = [
     "Combustível",
     "Passagens Aéreas",
@@ -89,7 +80,7 @@ function normalizeCategories(rawCategories: Array<{ nome: string; total: number 
 
   const map = new Map<string, number>();
   rawCategories.forEach((item) => {
-    map.set(item.nome, toNumberValue(item.total));
+    map.set(item.name, toNumberValue(item.total));
   });
 
   return expectedOrder.map((nome) => {
@@ -141,6 +132,7 @@ export class DashboardService {
     }>(cacheKey);
 
     let baseData = cached;
+
     if (!baseData) {
       const [
         totalAtualAgg,
@@ -148,7 +140,7 @@ export class DashboardService {
         totalAnoAtualAgg,
         totalAnoAnteriorAgg,
         topDeputiesRows,
-        categoryRows,
+        categoryRowsRaw,
       ] = await Promise.all([
         prisma.deputyMonthTotal.aggregate({
           where: { ano, mes },
@@ -191,28 +183,7 @@ export class DashboardService {
           ORDER BY mt."totalCents" DESC
           LIMIT 10
         `),
-        prisma.$queryRaw<Array<{ nome: string; total: number }>>(Prisma.sql`
-          SELECT
-            category AS "nome",
-            COALESCE(SUM(category_total), 0)::DOUBLE PRECISION AS "total"
-          FROM (
-            SELECT
-              CASE
-                WHEN UPPER(COALESCE(et."label", '')) LIKE '%COMBUST%' THEN 'Combustível'
-                WHEN UPPER(COALESCE(et."label", '')) LIKE '%PASSAGEM AÉREA%' OR UPPER(COALESCE(et."label", '')) LIKE '%PASSAGEM AEREA%' THEN 'Passagens Aéreas'
-                WHEN UPPER(COALESCE(et."label", '')) LIKE '%DIVULGAÇÃO%' OR UPPER(COALESCE(et."label", '')) LIKE '%DIVULGACAO%' THEN 'Divulgação'
-                WHEN UPPER(COALESCE(et."label", '')) LIKE '%MANUTENÇÃO%' OR UPPER(COALESCE(et."label", '')) LIKE '%MANUTENCAO%' OR UPPER(COALESCE(et."label", '')) LIKE '%ESCRITÓRIO%' OR UPPER(COALESCE(et."label", '')) LIKE '%ESCRITORIO%' OR UPPER(COALESCE(et."label", '')) LIKE '%GABINETE%' THEN 'Manutenção Gabinete'
-                ELSE NULL
-              END AS category,
-              e."valorLiquido"::DOUBLE PRECISION AS category_total
-            FROM "Expense" e
-            LEFT JOIN "ExpenseType" et ON et."id" = e."expenseTypeId"
-            WHERE e."ano" = ${ano}
-              AND e."mes" = ${mes}
-          ) categorized
-          WHERE category IS NOT NULL
-          GROUP BY category
-        `),
+        getExpenseCategoriesByMonth(ano, mes),
       ]);
 
       const totalMesAtual = roundTo2(toNumberValue(totalAtualAgg._sum.totalCents) / 100);
@@ -235,7 +206,7 @@ export class DashboardService {
         variacaoMensalPct: calculateVariation(totalMesAtual, totalMesAnterior),
         variacaoAnualPct: calculateVariation(totalAnoAtual, totalAnoAnterior),
         maiorGasto: ranking[0] ?? null,
-        categorias: normalizeCategories(categoryRows, totalMesAtual),
+        categorias: normalizeCategories(categoryRowsRaw, totalMesAtual),
         ranking,
         generatedAt: new Date().toISOString(),
       };
@@ -278,4 +249,3 @@ export class DashboardService {
     };
   }
 }
-

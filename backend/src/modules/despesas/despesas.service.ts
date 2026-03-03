@@ -6,6 +6,7 @@ import { AppError } from "../../shared/errors/app-error";
 import { DeputadosRepository } from "../deputados/deputados.repository";
 import { DespesasRepository } from "./despesas.repository";
 import { ExpenseTypesRepository } from "./expense-types.repository";
+import { getExpenseCategoriesByMonth } from "./expense-categories";
 
 function toDecimal(value: number | undefined): Prisma.Decimal {
   return new Prisma.Decimal(value ?? 0);
@@ -13,6 +14,25 @@ function toDecimal(value: number | undefined): Prisma.Decimal {
 
 function normalize(value?: string): string {
   return (value ?? "").trim().toLowerCase();
+}
+
+function resolveBrazilMonthYear() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+  }).formatToParts(new Date());
+
+  const yearRaw = parts.find((part) => part.type === "year")?.value;
+  const monthRaw = parts.find((part) => part.type === "month")?.value;
+
+  const ano = Number(yearRaw);
+  const mes = Number(monthRaw);
+
+  return {
+    ano: Number.isFinite(ano) ? ano : new Date().getFullYear(),
+    mes: Number.isFinite(mes) ? mes : new Date().getMonth() + 1,
+  };
 }
 
 export class DespesasService {
@@ -169,6 +189,45 @@ export class DespesasService {
         itens: items,
         totalPaginas: Math.ceil(total / items)
       }
+    };
+  }
+
+  async listMonthExpenses(input: { ano?: number; mes?: number; pagina: number; itens: number }) {
+    const ref = resolveBrazilMonthYear();
+    const ano = input.ano ?? ref.ano;
+    const mes = input.mes ?? ref.mes;
+
+    const [{ total, rows }, categories] = await Promise.all([
+      this.despesasRepository.listByMonth(ano, mes, input.pagina, input.itens),
+      getExpenseCategoriesByMonth(ano, mes),
+    ]);
+
+    const monthTotal = categories.reduce((acc, item) => acc + Number(item.total || 0), 0);
+
+    return {
+      data: rows.map((row) => ({
+        id: row.id,
+        deputyId: row.deputyId,
+        deputyName: row.deputyName,
+        siglaPartido: row.siglaPartido,
+        siglaUf: row.siglaUf,
+        dataDocumento: row.dataDocumento?.toISOString() ?? null,
+        numeroDocumento: row.numeroDocumento,
+        fornecedor: row.fornecedor,
+        valorLiquido: Number(row.valorLiquido ?? 0),
+        urlDocumento: row.urlDocumento,
+        categoryLabel: row.categoryLabel,
+      })),
+      meta: {
+        ano,
+        mes,
+        pagina: input.pagina,
+        itens: input.itens,
+        total,
+        totalPaginas: Math.ceil(total / input.itens),
+        categories,
+        monthTotal,
+      },
     };
   }
 }
