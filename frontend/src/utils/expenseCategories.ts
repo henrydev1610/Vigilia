@@ -19,9 +19,8 @@ export function canonicalCategoryName(raw: string | null | undefined): Canonical
   const normalized = normalizeText(String(raw ?? ''));
 
   if (normalized.includes('COMBUST')) return 'Combustível';
-  if (normalized.includes('PASSAG') && normalized.includes('AERE')) return 'Passagens Aéreas';
+  if (normalized.includes('PASSAG')) return 'Passagens Aéreas';
   if (normalized.includes('MANUTEN') || normalized.includes('ESCRITORIO') || normalized.includes('GABINETE')) return 'Manutenção Gabinete';
   if (normalized.includes('DIVULG')) return 'Divulgação';
   return 'Outros';
 }
-
