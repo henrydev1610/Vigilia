@@ -46,11 +46,38 @@ function isCanceledError(error: unknown) {
   return source.code === 'ERR_CANCELED' || source.name === 'CanceledError' || source.message === 'canceled';
 }
 
-export function useDeputadoDetailScreen(deputyId: number) {
+function normalizeYear(value: unknown, fallback: string) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  const year = Math.trunc(parsed);
+  if (year < 2000 || year > 2100) return fallback;
+  return String(year);
+}
+
+function normalizeMonth(value: unknown, fallback: string) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  const month = Math.trunc(parsed);
+  if (month < 1 || month > 12) return fallback;
+  return String(month);
+}
+
+export function useDeputadoDetailScreen(
+  deputyId: number,
+  initialPeriod?: { ano?: number; mes?: number },
+) {
   const isFocused = useIsFocused();
   const queryClient = useQueryClient();
   const currentYear = String(new Date().getFullYear());
   const currentMonth = String(new Date().getMonth() + 1);
+  const routeAno = useMemo(
+    () => (typeof initialPeriod?.ano === 'number' ? normalizeYear(initialPeriod.ano, currentYear) : null),
+    [currentYear, initialPeriod?.ano],
+  );
+  const routeMes = useMemo(
+    () => (typeof initialPeriod?.mes === 'number' ? normalizeMonth(initialPeriod.mes, currentMonth) : null),
+    [currentMonth, initialPeriod?.mes],
+  );
 
   const [ano, setAno] = useState(currentYear);
   const [mes, setMes] = useState(currentMonth);
@@ -71,18 +98,27 @@ export function useDeputadoDetailScreen(deputyId: number) {
     let active = true;
     (async () => {
       try {
+        let nextAno = currentYear;
+        let nextMes = currentMonth;
+
         const rawFilters = await AsyncStorage.getItem(filterStorageKey);
         if (!active) return;
 
         if (rawFilters) {
           const parsed = JSON.parse(rawFilters) as { ano?: string; mes?: string };
-          const nextAno = parsed?.ano ? String(parsed.ano) : currentYear;
-          const nextMes = parsed?.mes ? String(parsed.mes) : currentMonth;
-          setAno(nextAno);
-          setMes(nextMes);
-          setAppliedAno(nextAno);
-          setAppliedMes(nextMes);
+          nextAno = parsed?.ano ? normalizeYear(parsed.ano, currentYear) : currentYear;
+          nextMes = parsed?.mes ? normalizeMonth(parsed.mes, currentMonth) : currentMonth;
         }
+
+        if (routeAno && routeMes) {
+          nextAno = routeAno;
+          nextMes = routeMes;
+        }
+
+        setAno(nextAno);
+        setMes(nextMes);
+        setAppliedAno(nextAno);
+        setAppliedMes(nextMes);
       } catch {
         // ignore local storage errors
       } finally {
@@ -95,7 +131,7 @@ export function useDeputadoDetailScreen(deputyId: number) {
     return () => {
       active = false;
     };
-  }, [currentMonth, currentYear, filterStorageKey]);
+  }, [currentMonth, currentYear, filterStorageKey, routeAno, routeMes]);
 
   useEffect(() => {
     if (!filtersReady) return;
@@ -286,20 +322,26 @@ export function useDeputadoDetailScreen(deputyId: number) {
     // eslint-disable-next-line no-console
     console.log('[detail] summary.final', {
       deputyId,
+      routeAno,
+      routeMes,
       ano: appliedAno,
       mes: appliedMes,
       totalMensal: monthlyTotal,
       chartPoints: chartExpenses.length,
       monthlySummaryLoaded: Boolean(monthlySummaryQuery.data),
     });
-  }, [appliedAno, appliedMes, chartExpenses.length, deputyId, monthlySummaryQuery.data, monthlyTotal]);
+  }, [appliedAno, appliedMes, chartExpenses.length, deputyId, monthlySummaryQuery.data, monthlyTotal, routeAno, routeMes]);
 
   const applyFilters = useCallback(async (next?: { ano?: string; mes?: string }) => {
     setRefreshing(true);
     setError(null);
     try {
-      const nextAno = String(next?.ano ?? ano);
-      const nextMes = String(next?.mes ?? mes);
+      const nextAno = normalizeYear(next?.ano ?? ano, ano);
+      const nextMes = normalizeMonth(next?.mes ?? mes, mes);
+      if (__DEV__) {
+        // eslint-disable-next-line no-console
+        console.log('[detail] applyFilters.period', { deputyId, nextAno, nextMes });
+      }
       if (next?.ano) setAno(nextAno);
       if (next?.mes) setMes(nextMes);
       if (next?.ano || next?.mes) {

@@ -20,6 +20,14 @@ export async function despesasRoutes(app: FastifyInstance) {
   app.get("/api/deputados/:id/despesas", { preHandler: [app.authenticate] }, async (request) => {
     const params = deputyIdParamSchema.parse(request.params);
     const query = despesasQuerySchema.parse(request.query);
+    if (process.env.DEBUG_PERIOD === "true") {
+      request.log.info({
+        tag: "detail-period",
+        deputyId: params.id,
+        ano: query.ano,
+        mes: query.mes,
+      });
+    }
     const result = await service.listDeputyExpenses(params.id, query.ano, query.mes, query.pagina, query.itens);
     return { success: true, ...result };
   });
