@@ -4,7 +4,7 @@ import { dashboardResumoRequest } from '../services/endpoints';
 import { DashboardData, DashboardRankingItem } from '../types/dashboard';
 import { formatCurrencyBRL } from '../utils/format';
 import { getApiErrorMessage } from '../utils/apiError';
-import { canonicalCategoryName, HOME_CATEGORY_ORDER } from '../utils/expenseCategories';
+import { buildDynamicCategoryBars, HOME_CATEGORY_ORDER } from '../utils/expenseCategories';
 
 function buildEmptyDashboard(): DashboardData {
   return {
@@ -64,34 +64,18 @@ export function useDashboardSummary() {
       ?? (query.data as any).categories
       ?? [];
 
-    const grouped = new Map<string, { total: number; percent: number }>();
-
-    (Array.isArray(rawCategoriesInput) ? rawCategoriesInput : []).forEach((item: any) => {
-      const rawName = item?.nome ?? item?.name ?? '';
-      const canonical = canonicalCategoryName(rawName);
-      const key = canonical === 'Outros' ? 'Outros' : canonical;
-      const current = grouped.get(key) ?? { total: 0, percent: 0 };
-      const totalValue = Number(item?.total ?? item?.value ?? 0);
-      grouped.set(key, {
-        total: current.total + totalValue,
-        percent: current.percent + Number(item?.percentual ?? item?.percent ?? 0),
-      });
-    });
-
-    const totalOfAllCategories = Array.from(grouped.values()).reduce((acc, item) => acc + Number(item.total || 0), 0);
-
-    const categories = HOME_CATEGORY_ORDER.map((name) => {
-      const category = grouped.get(name);
-      const total = category?.total ?? 0;
-      const progress = totalOfAllCategories > 0
-        ? Math.max(0, Math.min(1, total / totalOfAllCategories))
-        : 0;
-      return {
+    const dynamicBars = buildDynamicCategoryBars(Array.isArray(rawCategoriesInput) ? rawCategoriesInput : []);
+    const categories = dynamicBars.length
+      ? dynamicBars.map((item) => ({
+        name: item.name,
+        valueLabel: formatCurrencyBRL(item.total),
+        progress: item.progress,
+      }))
+      : HOME_CATEGORY_ORDER.map((name) => ({
         name,
-        valueLabel: formatCurrencyBRL(total),
-        progress,
-      };
-    });
+        valueLabel: formatCurrencyBRL(0),
+        progress: 0,
+      }));
 
     const ranking = mapRanking(query.data.ranking ?? []);
     const rankingTotal = ranking.reduce((acc, item) => acc + item.total, 0);

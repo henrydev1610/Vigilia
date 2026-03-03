@@ -7,7 +7,7 @@ import { formatCurrencyBRL, formatDateBR } from '../utils/format';
 import { fallbackFonts, useAppTheme } from '../theme';
 import { Card, ErrorBanner, LoadingState, Screen } from '../components/ui';
 import { CategoryBarsCard } from '../components/dashboard';
-import { canonicalCategoryName, HOME_CATEGORY_ORDER } from '../utils/expenseCategories';
+import { buildDynamicCategoryBars, canonicalCategoryName, HOME_CATEGORY_ORDER } from '../utils/expenseCategories';
 import { getApiErrorMessage } from '../utils/apiError';
 import { toNumberBR } from '../utils/money';
 import { MonthExpenseItem } from '../types/api';
@@ -48,26 +48,18 @@ export const ExpensesScreen: React.FC = () => {
   const requestIdRef = useRef(0);
 
   const normalizeCategories = useCallback((raw: Array<{ name: string; total: number; percent: number }>) => {
-    const grouped = new Map<string, { total: number; percent: number }>();
-
-    raw.forEach((entry) => {
-      const canonical = canonicalCategoryName(entry.name);
-      if (canonical === 'Outros') return;
-      const current = grouped.get(canonical) ?? { total: 0, percent: 0 };
-      grouped.set(canonical, {
-        total: current.total + toNumberBR(entry.total),
-        percent: current.percent + toNumberBR(entry.percent),
-      });
-    });
-
-    const normalized = HOME_CATEGORY_ORDER.map((name) => {
-      const item = grouped.get(name);
-      return {
+    const normalizedBars = buildDynamicCategoryBars(raw);
+    const normalized = normalizedBars.length
+      ? normalizedBars.map((item) => ({
+        name: item.name,
+        valueLabel: formatCurrencyBRL(item.total),
+        progress: item.progress,
+      }))
+      : HOME_CATEGORY_ORDER.map((name) => ({
         name,
-        valueLabel: formatCurrencyBRL(item?.total ?? 0),
-        progress: Math.max(0, Math.min(1, (item?.percent ?? 0) / 100)),
-      };
-    });
+        valueLabel: formatCurrencyBRL(0),
+        progress: 0,
+      }));
 
     if (__DEV__) {
       // eslint-disable-next-line no-console
