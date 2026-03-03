@@ -64,23 +64,31 @@ export class DeputadosRepository {
   }
 
   async listMonthlyTotals(ano: number, mes: number, limit: number, offset: number) {
-    const rows = await prisma.expense.groupBy({
-      by: ["deputyId"],
-      where: { ano, mes },
-      _sum: {
-        valorLiquido: true
-      },
-      orderBy: {
-        deputyId: "asc"
-      },
-      skip: offset,
-      take: limit
-    });
+    const [totalRows, rows] = await Promise.all([
+      prisma.deputyMonthTotal.count({
+        where: { ano, mes },
+      }),
+      prisma.deputyMonthTotal.findMany({
+        where: { ano, mes },
+        orderBy: {
+          deputyId: "asc",
+        },
+        skip: offset,
+        take: limit,
+        select: {
+          deputyId: true,
+          totalCents: true,
+        },
+      }),
+    ]);
 
-    return rows.map((row) => ({
-      deputadoId: row.deputyId,
-      totalMes: Number(row._sum.valorLiquido ?? 0)
-    }));
+    return {
+      totalRows,
+      rows: rows.map((row) => ({
+        deputadoId: row.deputyId,
+        totalMes: Number(row.totalCents ?? 0) / 100,
+      })),
+    };
   }
 
   async getMonthlyTotalByDeputy(deputyId: number, ano: number, mes: number) {

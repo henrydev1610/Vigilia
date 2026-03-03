@@ -9,12 +9,13 @@ import {
   syncDeputadosMesRequest,
   syncDeputyExpensesRequest,
 } from '../services/endpoints';
+import { logApiDiagnosticsOnce } from '../services/api';
 import { mapDeputy, mapExpense } from '../services/mappers';
 import { getApiErrorMessage } from '../utils/apiError';
 import { dedupeByKey, mergeUniqueById, stableKeyFromDespesa } from '../utils/keys';
 
 const PAGE_SIZE = 20;
-const AGGREGATE_PAGE_SIZE = 200;
+const AGGREGATE_PAGE_SIZE = 100;
 const DETAIL_FILTER_STORAGE_PREFIX = 'detail:filters:deputado:';
 
 function buildPeriodRef(ano: string, mes: string) {
@@ -108,6 +109,11 @@ export function useDeputadoDetailScreen(deputyId: number) {
     }
   }, []);
 
+  useEffect(() => {
+    if (!isFocused || !__DEV__) return;
+    void logApiDiagnosticsOnce('DeputadoDetailScreen');
+  }, [isFocused]);
+
   const deputyQuery = useQuery({
     queryKey: ['deputado', deputyId, 'profile'],
     queryFn: async () => mapDeputy(await deputadoDetailRequest(deputyId)),
@@ -188,6 +194,16 @@ export function useDeputadoDetailScreen(deputyId: number) {
           byId.set(id, { ...vm, id });
         });
 
+        if (__DEV__ && page === 1) {
+          // eslint-disable-next-line no-console
+          console.log('[detail] summary.raw', {
+            deputyId,
+            ano: anoRef,
+            mes: mesRef,
+            rows: rows.length,
+          });
+        }
+
         if (rows.length < AGGREGATE_PAGE_SIZE) {
           break;
         }
@@ -264,6 +280,19 @@ export function useDeputadoDetailScreen(deputyId: number) {
   const chartExpenses = useMemo(() => monthlySummaryQuery.data?.despesas ?? expenses, [expenses, monthlySummaryQuery.data?.despesas]);
   const monthlyTotalLoading = monthlySummaryQuery.isLoading || (monthlySummaryQuery.isFetching && !monthlySummaryQuery.data);
   const chartLoading = monthlySummaryQuery.isLoading || (monthlySummaryQuery.isFetching && !monthlySummaryQuery.data);
+
+  useEffect(() => {
+    if (!__DEV__) return;
+    // eslint-disable-next-line no-console
+    console.log('[detail] summary.final', {
+      deputyId,
+      ano: appliedAno,
+      mes: appliedMes,
+      totalMensal: monthlyTotal,
+      chartPoints: chartExpenses.length,
+      monthlySummaryLoaded: Boolean(monthlySummaryQuery.data),
+    });
+  }, [appliedAno, appliedMes, chartExpenses.length, deputyId, monthlySummaryQuery.data, monthlyTotal]);
 
   const applyFilters = useCallback(async (next?: { ano?: string; mes?: string }) => {
     setRefreshing(true);

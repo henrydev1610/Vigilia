@@ -30,9 +30,10 @@ export async function deputadosRoutes(app: FastifyInstance) {
         }
       }
     },
-    async (request) => {
+    async (request, reply) => {
       const query = deputadosResumoMesQuerySchema.parse(request.query);
       const result = await service.getResumoByMonth(query.mes);
+      reply.header("Cache-Control", "no-store");
       return { success: true, ...result };
     }
   );
@@ -54,10 +55,11 @@ export async function deputadosRoutes(app: FastifyInstance) {
         }
       }
     },
-    async (request) => {
+    async (request, reply) => {
       const params = deputyIdParamsSchema.parse(request.params);
       const query = deputyResumoQuerySchema.parse(request.query);
       const data = await service.getDeputyMonthlyResumo(params.id, query.ano, query.mes);
+      reply.header("Cache-Control", "no-store");
       return { success: true, data };
     }
   );
@@ -92,9 +94,10 @@ export async function deputadosRoutes(app: FastifyInstance) {
         }
       }
     },
-    async (request) => {
+    async (request, reply) => {
       const query = analyticsTotalsQuerySchema.parse(request.query);
       const data = await service.listMonthlyTotals(query.ano, query.mes, query.limit, query.offset, query.page);
+      reply.header("Cache-Control", "no-store");
       return { success: true, ...data };
     }
   );
