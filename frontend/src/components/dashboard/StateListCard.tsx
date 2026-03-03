@@ -9,6 +9,8 @@ import { ProgressBar } from './ProgressBar';
 interface StateListCardProps {
   totalLabel: string;
   items: DashboardStateItem[];
+  title?: string;
+  icon?: React.ComponentProps<typeof Icon>['name'];
 }
 
 function stateTone(index: number): string {
@@ -16,14 +18,19 @@ function stateTone(index: number): string {
   return tones[index % tones.length];
 }
 
-export const StateListCard: React.FC<StateListCardProps> = ({ totalLabel, items }) => {
+export const StateListCard: React.FC<StateListCardProps> = ({
+  totalLabel,
+  items,
+  title = 'Gastos por Estado',
+  icon = 'map',
+}) => {
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
         {/* favor não mexer nesse componente */}
         <View style={styles.titleWrap}>
-          <Icon name="map" size={18} color="#22D663" />
-          <Text style={[styles.sectionTitle, { fontFamily: fallbackFonts.headingBold }]}>Gastos por Estado</Text>
+          <Icon name={icon} size={18} color="#22D663" />
+          <Text style={[styles.sectionTitle, { fontFamily: fallbackFonts.headingBold }]}>{title}</Text>
           <Text style={[styles.total, { fontFamily: fallbackFonts.bodyMedium }]}>{totalLabel}</Text>
 
         </View>

@@ -10,12 +10,15 @@ interface StatCardMainProps {
 }
 
 function formatMonthTotal(value: number): string {
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat('pt-BR', {
     maximumFractionDigits: 0,
   }).format(value);
 }
 
 export const StatCardMain: React.FC<StatCardMainProps> = ({ monthTotal, monthDeltaPct }) => {
+  const isNegative = monthDeltaPct < 0;
+  const deltaLabel = `${isNegative ? '' : '+'}${monthDeltaPct.toFixed(1)}%`;
+
   return (
     <LinearGradient colors={['#142D22', '#112920', '#111D18']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0.9 }} style={styles.card}>
       <View style={styles.content}>
@@ -27,9 +30,9 @@ export const StatCardMain: React.FC<StatCardMainProps> = ({ monthTotal, monthDel
         </View>
 
         <View style={styles.badgeRow}>
-          <View style={styles.badge}>
-            <Icon name="trending-up" size={12} color="#18D85E" />
-            <Text style={[styles.badgeText, { fontFamily: fallbackFonts.bodyMedium }]}>{monthDeltaPct.toFixed(1)}%</Text>
+          <View style={[styles.badge, isNegative ? styles.badgeNegative : null]}>
+            <Icon name={isNegative ? 'trending-down' : 'trending-up'} size={12} color={isNegative ? '#FF6F69' : '#18D85E'} />
+            <Text style={[styles.badgeText, isNegative ? styles.badgeTextNegative : null, { fontFamily: fallbackFonts.bodyMedium }]}>{deltaLabel}</Text>
           </View>
           <Text style={[styles.badgeLabel, { fontFamily: fallbackFonts.body }]}>vs. mês anterior</Text>
         </View>
@@ -103,6 +106,12 @@ const styles = StyleSheet.create({
   badgeText: {
     color: '#1BDC5D',
     fontSize: 16,
+  },
+  badgeTextNegative: {
+    color: '#FF6F69',
+  },
+  badgeNegative: {
+    backgroundColor: '#3A1E1E',
   },
   badgeLabel: {
     color: '#6A7D92',

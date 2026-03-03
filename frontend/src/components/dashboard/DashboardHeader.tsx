@@ -5,7 +5,11 @@ import { fallbackFonts } from '../../theme';
 import { AppLogo } from '../branding/AppLogo';
 import { HeaderProfileButton } from '../header';
 
-export const DashboardHeader: React.FC = () => {
+interface DashboardHeaderProps {
+  alertsCount?: number;
+}
+
+export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ alertsCount = 0 }) => {
   return (
     <View style={styles.container}>
       <View style={styles.brandWrap}>
@@ -19,7 +23,16 @@ export const DashboardHeader: React.FC = () => {
       </View>
 
       <View style={styles.actions}>
-        <Icon name="bell" size={20} color="#95A7C0" />
+        <View style={styles.bellWrap}>
+          <Icon name="bell" size={20} color="#95A7C0" />
+          {alertsCount > 0 ? (
+            <View style={styles.alertBadge}>
+              <Text style={[styles.alertBadgeText, { fontFamily: fallbackFonts.headingBold }]}>
+                {alertsCount > 99 ? '99+' : String(alertsCount)}
+              </Text>
+            </View>
+          ) : null}
+        </View>
         <HeaderProfileButton iconSize={21} iconColor="#95A7C0" />
       </View>
     </View>
@@ -62,5 +75,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     gap: 12,
+  },
+  bellWrap: {
+    position: 'relative',
+    padding: 2,
+  },
+  alertBadge: {
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#FF4D4F',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 3,
+    position: 'absolute',
+    right: -7,
+    top: -6,
+  },
+  alertBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    lineHeight: 11,
   },
 });

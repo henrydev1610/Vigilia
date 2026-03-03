@@ -15,12 +15,23 @@ export interface DashboardStateItem {
   progress?: number;
 }
 
+export interface DashboardRankingItem {
+  deputyId: number;
+  name: string;
+  party: string;
+  uf: string;
+  valueLabel: string;
+  total: number;
+  progress: number;
+}
+
 export interface DashboardData {
   monthTotal: number;
   monthDeltaPct: number;
   topSpender: DashboardTopSpender;
   yearDeltaPct: number;
   categories: DashboardCategory[];
-  states: DashboardStateItem[];
-  statesTotalLabel: string;
+  ranking: DashboardRankingItem[];
+  rankingTotalLabel: string;
+  alertsCount: number;
 }

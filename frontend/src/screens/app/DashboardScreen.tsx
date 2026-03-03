@@ -1,7 +1,7 @@
-﻿import React, { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+﻿import React, { useMemo } from 'react';
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Screen } from '../../components/ui';
+import { ErrorBanner, LoadingState, Screen } from '../../components/ui';
 import {
   CategoryBarsCard,
   DashboardHeader,
@@ -9,37 +9,40 @@ import {
   StatCardMain,
   StatCardSmall,
 } from '../../components/dashboard';
-import { dashboardSeed } from '../../data/dashboardSeed';
-import { getDashboardData } from '../../storage/dashboardStorage';
-import { DashboardData } from '../../types/dashboard';
+import { useDashboardSummary } from '../../hooks';
 
 export const DashboardScreen: React.FC = () => {
-  const [dashboard, setDashboard] = useState<DashboardData>(dashboardSeed);
-  const [hydrated, setHydrated] = useState(false);
+  const { dashboard, loading, refreshing, error, refresh } = useDashboardSummary();
 
-  useEffect(() => {
-    let active = true;
+  const annualLine1 = useMemo(() => {
+    const value = Number(dashboard.yearDeltaPct || 0);
+    const signal = value > 0 ? '+' : '';
+    return `${signal}${value.toFixed(1)}%`;
+  }, [dashboard.yearDeltaPct]);
 
-    (async () => {
-      const loaded = await getDashboardData();
-      if (!active) {
-        return;
-      }
-      setDashboard(loaded);
-      setHydrated(true);
-    })();
+  const annualLine1Tone = dashboard.yearDeltaPct > 0 ? 'red' : 'default';
+  const annualLine2Tone = dashboard.yearDeltaPct > 0 ? 'red' : 'green';
 
-    return () => {
-      active = false;
-    };
-  }, []);
+  const rankingItems = useMemo(() => {
+    return dashboard.ranking.map((item) => ({
+      name: `${item.name} (${item.party}/${item.uf})`,
+      valueLabel: item.valueLabel,
+      progress: item.progress,
+    }));
+  }, [dashboard.ranking]);
 
   return (
     <Screen padded={false} includeBottomInset={false} contentStyle={styles.screenContent}>
       <LinearGradient colors={['#060E13', '#040B08', '#050B0E']} style={styles.background} />
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={[styles.inner, !hydrated ? styles.loadingState : null]}>
-          <DashboardHeader />
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} tintColor="#22D663" />}
+      >
+        <View style={styles.inner}>
+          <DashboardHeader alertsCount={dashboard.alertsCount} />
+          {error ? <ErrorBanner message={error} onAction={() => void refresh()} /> : null}
+          {loading ? <LoadingState label="Carregando indicadores do dashboard..." /> : null}
 
           <StatCardMain monthTotal={dashboard.monthTotal} monthDeltaPct={dashboard.monthDeltaPct} />
 
@@ -52,16 +55,21 @@ export const DashboardScreen: React.FC = () => {
             />
             <StatCardSmall
               title="VARIAÇÃO ANUAL"
-              line1={`+${dashboard.yearDeltaPct.toFixed(1)}%`}
-              line1Tone="red"
-              line2="Acima da inflação"
-              line2Tone="muted"
+              line1={annualLine1}
+              line1Tone={annualLine1Tone}
+              line2="vs mesmo período do ano anterior"
+              line2Tone={annualLine2Tone}
               showAlertIcon
             />
           </View>
 
           <CategoryBarsCard items={dashboard.categories} />
-          <StateListCard totalLabel={dashboard.statesTotalLabel} items={dashboard.states} />
+          <StateListCard
+            title="Ranking do Mês"
+            icon="podium-gold"
+            totalLabel={dashboard.rankingTotalLabel}
+            items={rankingItems}
+          />
         </View>
       </ScrollView>
     </Screen>
@@ -82,12 +90,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 10,
   },
-  loadingState: {
-    opacity: 0.98,
-  },
   smallCardsRow: {
     flexDirection: 'row',
     gap: 10,
   },
 });
-

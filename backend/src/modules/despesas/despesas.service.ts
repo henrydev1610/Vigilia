@@ -128,6 +128,7 @@ export class DespesasService {
     await deleteByPattern("cache:deputados:mes:*");
     await deleteByPattern("cache:deputados:resumo:*");
     await deleteByPattern(`cache:deputados:totais-mes:${ano}:${mes}:*`);
+    await deleteByPattern("cache:dashboard:resumo:*");
 
     const [totalMes, [totalCount]] = await Promise.all([
       this.deputiesRepository.getMonthlyTotalByDeputy(deputyId, ano, mes),
