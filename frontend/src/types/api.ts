@@ -189,3 +189,35 @@ export interface DashboardResumoResponse {
   alertsCount: number;
 }
 
+export interface MonthExpenseItem {
+  id: string;
+  deputyId: number;
+  deputyName: string;
+  siglaPartido: string;
+  siglaUf: string;
+  dataDocumento: string | null;
+  numeroDocumento: string | null;
+  fornecedor: string | null;
+  valorLiquido: number;
+  urlDocumento: string | null;
+  categoryLabel: string | null;
+}
+
+export interface MonthExpensesResponse {
+  data: MonthExpenseItem[];
+  meta: {
+    ano: number;
+    mes: number;
+    pagina: number;
+    itens: number;
+    total: number;
+    totalPaginas: number;
+    monthTotal: number;
+    categories: Array<{
+      name: string;
+      total: number;
+      percent: number;
+    }>;
+  };
+}
+

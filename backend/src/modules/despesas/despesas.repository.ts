@@ -38,4 +38,49 @@ export class DespesasRepository {
       })
     ]);
   }
+
+  async listByMonth(ano: number, mes: number, page: number, items: number) {
+    const offset = (page - 1) * items;
+    const [total, rows] = await Promise.all([
+      prisma.expense.count({ where: { ano, mes } }),
+      prisma.$queryRaw<
+        Array<{
+          id: string;
+          deputyId: number;
+          deputyName: string;
+          siglaPartido: string;
+          siglaUf: string;
+          dataDocumento: Date | null;
+          numeroDocumento: string | null;
+          fornecedor: string | null;
+          valorLiquido: Prisma.Decimal;
+          urlDocumento: string | null;
+          categoryLabel: string | null;
+        }>
+      >(Prisma.sql`
+        SELECT
+          e."id" AS "id",
+          e."deputyId" AS "deputyId",
+          d."nome" AS "deputyName",
+          d."siglaPartido" AS "siglaPartido",
+          d."siglaUf" AS "siglaUf",
+          e."dataDocumento" AS "dataDocumento",
+          e."numeroDocumento" AS "numeroDocumento",
+          e."fornecedor" AS "fornecedor",
+          e."valorLiquido" AS "valorLiquido",
+          e."urlDocumento" AS "urlDocumento",
+          et."label" AS "categoryLabel"
+        FROM "Expense" e
+        INNER JOIN "Deputy" d ON d."id" = e."deputyId"
+        LEFT JOIN "ExpenseType" et ON et."id" = e."expenseTypeId"
+        WHERE e."ano" = ${ano}
+          AND e."mes" = ${mes}
+        ORDER BY e."dataDocumento" DESC NULLS LAST, e."createdAt" DESC
+        LIMIT ${items}
+        OFFSET ${offset}
+      `),
+    ]);
+
+    return { total, rows };
+  }
 }

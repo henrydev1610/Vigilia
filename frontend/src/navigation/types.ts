@@ -7,7 +7,7 @@ export type AppTabParamList = {
   Inicio: undefined;
   Explorar: undefined;
   Ranking: undefined;
-  Gastos: undefined;
+  Gastos: { ano?: number; mes?: number } | undefined;
   Alertas: undefined;
 };
 
