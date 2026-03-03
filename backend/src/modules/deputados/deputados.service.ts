@@ -15,6 +15,7 @@ const SYNC_CONCURRENCY = 4;
 type ListInput = {
   pagina: number;
   itens: number;
+  all?: boolean;
   ano?: number;
   mesNumero?: number;
   mes?: string;
@@ -167,10 +168,14 @@ export class DeputadosService {
       return cached;
     }
 
-    let { total, deputies } = await this.repository.list(input, input.pagina, input.itens);
+    let { total, deputies } = input.all
+      ? await this.repository.listAll(input)
+      : await this.repository.list(input, input.pagina, input.itens);
     if (total === 0) {
       await this.syncAllDeputies();
-      ({ total, deputies } = await this.repository.list(input, input.pagina, input.itens));
+      ({ total, deputies } = input.all
+        ? await this.repository.listAll(input)
+        : await this.repository.list(input, input.pagina, input.itens));
     }
 
     const salario = await this.salarioService.getCurrentSalary();
@@ -178,9 +183,9 @@ export class DeputadosService {
       data: deputies.map((item) => ({ ...item, salario })),
       meta: {
         total,
-        pagina: input.pagina,
-        itens: input.itens,
-        totalPaginas: Math.ceil(total / input.itens)
+        pagina: input.all ? 1 : input.pagina,
+        itens: input.all ? total : input.itens,
+        totalPaginas: input.all ? 1 : Math.ceil(total / input.itens)
       }
     };
 

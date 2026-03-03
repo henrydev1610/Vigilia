@@ -130,6 +130,7 @@ export interface FavoriteItem {
 export interface PaginatedQuery {
   pagina?: number;
   itens?: number;
+  all?: boolean;
   mes?: string;
   ano?: number;
   mesNumero?: number;

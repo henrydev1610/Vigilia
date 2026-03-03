@@ -63,6 +63,29 @@ export class DeputadosRepository {
     return { total, deputies };
   }
 
+  async listAll(filters: DeputyFilters) {
+    const where: Prisma.DeputyWhereInput = {
+      siglaUf: filters.uf,
+      siglaPartido: filters.partido,
+      nome: filters.search
+        ? {
+            contains: filters.search,
+            mode: "insensitive"
+          }
+        : undefined
+    };
+
+    const [total, deputies] = await Promise.all([
+      prisma.deputy.count({ where }),
+      prisma.deputy.findMany({
+        where,
+        orderBy: { nome: "asc" },
+      }),
+    ]);
+
+    return { total, deputies };
+  }
+
   async listMonthlyTotals(ano: number, mes: number, limit: number, offset: number) {
     const [totalRows, rows] = await Promise.all([
       prisma.deputyMonthTotal.count({

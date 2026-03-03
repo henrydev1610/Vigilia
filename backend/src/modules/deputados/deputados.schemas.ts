@@ -4,6 +4,7 @@ import { sanitizeText } from "../../shared/sanitize";
 export const listDeputiesQuerySchema = z.object({
   pagina: z.coerce.number().int().positive().default(1),
   itens: z.coerce.number().int().positive().max(100).default(50),
+  all: z.coerce.boolean().optional().default(false),
   mes: z.string().optional(),
   ano: z.coerce.number().int().min(2000).max(2100).optional(),
   mesNumero: z.coerce.number().int().min(1).max(12).optional(),
