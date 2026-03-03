@@ -2,6 +2,7 @@
 import {
   AuthTokens,
   ChangePasswordPayload,
+  DashboardResumoResponse,
   DeleteMePayload,
   Deputy,
   DeputadoResumoAnual,
@@ -155,6 +156,17 @@ export async function deputadosResumoMesRequest(mes: string): Promise<DeputadosR
   const response = await api.get('/api/deputados/resumo', { params: { mes } });
   const payload = response.data?.data ?? response.data;
   return payload as DeputadosResumoMes;
+}
+
+export async function dashboardResumoRequest(params: { ano?: number; mes?: number }): Promise<DashboardResumoResponse> {
+  const response = await api.get('/api/dashboard/resumo', {
+    params: {
+      ano: params.ano,
+      mes: params.mes,
+    },
+  });
+  const payload = response.data?.data ?? response.data;
+  return payload as DashboardResumoResponse;
 }
 
 export async function deputadoDetailRequest(id: number | string): Promise<Deputy> {

@@ -158,3 +158,34 @@ export interface DeputadoResumoAnual {
   }>;
 }
 
+export interface DashboardResumoResponse {
+  ano: number;
+  mes: number;
+  totalMesAtual: number;
+  totalMesAnterior: number;
+  variacaoMensalPct: number;
+  variacaoAnualPct: number;
+  maiorGasto: {
+    deputyId: number;
+    nome: string;
+    siglaPartido: string;
+    siglaUf: string;
+    urlFoto: string;
+    total: number;
+  } | null;
+  categorias: Array<{
+    nome: string;
+    total: number;
+    percentual: number;
+  }>;
+  ranking: Array<{
+    deputyId: number;
+    nome: string;
+    siglaPartido: string;
+    siglaUf: string;
+    urlFoto: string;
+    total: number;
+  }>;
+  alertsCount: number;
+}
+

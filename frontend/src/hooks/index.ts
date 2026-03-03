@@ -6,3 +6,4 @@ export * from './useDeputadosScreen';
 export * from './useDeputadosScreenController';
 export * from './useDeputadoDetailScreen';
 export * from './useAnalytics';
+export * from './useDashboardSummary';

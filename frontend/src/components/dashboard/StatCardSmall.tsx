@@ -5,7 +5,7 @@ import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { fallbackFonts } from '../../theme';
 
 interface StatCardSmallProps {
-  title: 'MAIOR GASTO' | 'VARIAÇÃO ANUAL';
+  title: string;
   line1: string;
   line1Tone?: 'default' | 'red';
   line2: string;

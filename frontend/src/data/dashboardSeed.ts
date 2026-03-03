@@ -1,61 +1,36 @@
 ﻿import { DashboardData } from '../types/dashboard';
 
 export const dashboardSeed: DashboardData = {
-  monthTotal: 42572400,
-  monthDeltaPct: 4.2,
+  monthTotal: 0,
+  monthDeltaPct: 0,
   topSpender: {
-    name: 'Dep. João Silva',
-    amountLabel: 'R$ 184k',
+    name: 'Sem dados',
+    amountLabel: 'R$ 0,00',
   },
-  yearDeltaPct: 12.4,
+  yearDeltaPct: 0,
   categories: [
     {
       name: 'Combustível',
-      valueLabel: 'R$ 12.4M',
-      progress: 0.96,
+      valueLabel: 'R$ 0,00',
+      progress: 0,
     },
     {
       name: 'Passagens Aéreas',
-      valueLabel: 'R$ 8.2M',
-      progress: 0.66,
+      valueLabel: 'R$ 0,00',
+      progress: 0,
     },
     {
       name: 'Manutenção Gabinete',
-      valueLabel: 'R$ 5.1M',
-      progress: 0.41,
+      valueLabel: 'R$ 0,00',
+      progress: 0,
     },
     {
       name: 'Divulgação',
-      valueLabel: 'R$ 3.8M',
-      progress: 0.3,
+      valueLabel: 'R$ 0,00',
+      progress: 0,
     },
   ],
-  statesTotalLabel: 'R$ 29.4M',
-  states: [
-    {
-      name: 'São Paulo',
-      valueLabel: 'R$ 8.4M',
-      progress: 0.88,
-    },
-    {
-      name: 'Rio de Janeiro',
-      valueLabel: 'R$ 6.9M',
-      progress: 0.72,
-    },
-    {
-      name: 'Minas Gerais',
-      valueLabel: 'R$ 5.7M',
-      progress: 0.59,
-    },
-    {
-      name: 'Bahia',
-      valueLabel: 'R$ 4.8M',
-      progress: 0.5,
-    },
-    {
-      name: 'Distrito Federal',
-      valueLabel: 'R$ 3.6M',
-      progress: 0.38,
-    },
-  ],
+  rankingTotalLabel: 'R$ 0,00',
+  ranking: [],
+  alertsCount: 0,
 };

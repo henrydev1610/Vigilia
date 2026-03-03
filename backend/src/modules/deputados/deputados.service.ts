@@ -441,6 +441,7 @@ export class DeputadosService {
       await deleteByPattern(`cache:deputados:resumo:${ano}-${String(mes).padStart(2, "0")}`);
       await deleteByPattern("cache:deputados:totais-mes:*");
       await deleteByPattern("cache:ranking:ceap:*");
+      await deleteByPattern("cache:dashboard:resumo:*");
 
       return {
         ok: true,

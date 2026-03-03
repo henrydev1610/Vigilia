@@ -14,6 +14,7 @@ import { deputadosRoutes } from "./modules/deputados/deputados.routes";
 import { despesasRoutes } from "./modules/despesas/despesas.routes";
 import { rankingRoutes } from "./modules/ranking/ranking.routes";
 import { favoritosRoutes } from "./modules/favoritos/favoritos.routes";
+import { dashboardRoutes } from "./modules/dashboard/dashboard.routes";
 
 function escapeRegex(input: string): string {
   return input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -138,6 +139,7 @@ export async function buildApp() {
   await app.register(despesasRoutes);
   await app.register(rankingRoutes);
   await app.register(favoritosRoutes);
+  await app.register(dashboardRoutes);
 
   app.setErrorHandler(errorHandler);
   return app;
