@@ -317,17 +317,17 @@ export class DeputadosService {
       return cached;
     }
 
-    const rows = await this.repository.listMonthlyTotals(ano, mes, limit, offset);
+    const result = await this.repository.listMonthlyTotals(ano, mes, limit, offset);
     const response = {
-      data: rows,
+      data: result.rows,
       meta: {
         ano,
         mes,
         limit,
         offset,
         page,
-        total: rows.length,
-        hasMore: rows.length === limit
+        total: result.totalRows,
+        hasMore: offset + result.rows.length < result.totalRows,
       }
     };
 
@@ -394,15 +394,20 @@ export class DeputadosService {
       }
 
       const finalDeputyIds = deputyIds.length ? deputyIds : await this.repository.listAllDeputyIds();
+      const monthSyncMeta = await this.repository.getMonthSyncMeta(ano, mes);
       const firstAggregates = await this.repository.getExpenseAggregatesByMonth(ano, mes);
       const aggregateMap = new Map<number, { totalCents: bigint; expensesCount: number }>(
         firstAggregates.map((item) => [item.deputyId, { totalCents: item.totalCents, expensesCount: item.expensesCount }]),
       );
 
       const missingIds = finalDeputyIds.filter((id) => !aggregateMap.has(id));
+      const isStale = !monthSyncMeta.lastSyncedAt
+        || Date.now() - monthSyncMeta.lastSyncedAt.getTime() > MONTH_SYNC_STALE_MS;
+      const shouldResyncAll = force || isStale;
+      const idsToSync = shouldResyncAll ? finalDeputyIds : missingIds;
 
-      if (force || missingIds.length > 0) {
-        await this.runWithConcurrency(missingIds, SYNC_CONCURRENCY, async (deputyId) => {
+      if (idsToSync.length > 0) {
+        await this.runWithConcurrency(idsToSync, SYNC_CONCURRENCY, async (deputyId) => {
           try {
             await this.despesasService.syncDeputyExpenses(deputyId, ano, mes);
           } catch {
