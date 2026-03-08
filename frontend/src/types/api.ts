@@ -13,6 +13,19 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  profile?: UserProfile;
+}
+
+export interface UserProfile {
+  userId: string;
+  avatarUrl: string | null;
+  interestedParties: string[];
+  interestedStates: string[];
+  alertsEnabled: boolean;
+  biometricEnabled: boolean;
+  monitoringCount: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface HealthResponse {
@@ -38,6 +51,15 @@ export interface RefreshPayload {
 export interface UpdateMePayload {
   name?: string;
   email?: string;
+}
+
+export interface UpdateMyProfilePayload {
+  avatarUrl?: string | null;
+  interestedParties?: string[];
+  interestedStates?: string[];
+  alertsEnabled?: boolean;
+  biometricEnabled?: boolean;
+  monitoringCount?: number;
 }
 
 export interface ChangePasswordPayload {

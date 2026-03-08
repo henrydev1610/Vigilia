@@ -18,15 +18,34 @@ import {
   RefreshPayload,
   RegisterPayload,
   UpdateMePayload,
+  UpdateMyProfilePayload,
   User,
+  UserProfile,
 } from '../types/api';
 
 function normalizeUser(payload: any): User {
   const raw = payload?.user ?? payload?.data ?? payload;
+  const rawProfile = raw?.profile;
   return {
     id: String(raw?.id ?? raw?._id ?? ''),
     name: String(raw?.name ?? raw?.nome ?? ''),
     email: String(raw?.email ?? ''),
+    profile: rawProfile ? normalizeUserProfile(rawProfile) : undefined,
+  };
+}
+
+function normalizeUserProfile(payload: any): UserProfile {
+  const raw = payload?.data ?? payload;
+  return {
+    userId: String(raw?.userId ?? raw?.user_id ?? ''),
+    avatarUrl: raw?.avatarUrl ?? null,
+    interestedParties: Array.isArray(raw?.interestedParties) ? raw.interestedParties.map((item: unknown) => String(item)) : [],
+    interestedStates: Array.isArray(raw?.interestedStates) ? raw.interestedStates.map((item: unknown) => String(item)) : [],
+    alertsEnabled: Boolean(raw?.alertsEnabled),
+    biometricEnabled: Boolean(raw?.biometricEnabled),
+    monitoringCount: Number(raw?.monitoringCount ?? 0),
+    createdAt: raw?.createdAt ? String(raw.createdAt) : undefined,
+    updatedAt: raw?.updatedAt ? String(raw.updatedAt) : undefined,
   };
 }
 
@@ -118,6 +137,16 @@ export async function logoutRequest(refreshToken: string) {
 export async function updateMeRequest(input: UpdateMePayload) {
   const response = await api.patch('/api/users/me', input);
   return normalizeUser(response.data);
+}
+
+export async function getMyProfileRequest(): Promise<UserProfile> {
+  const response = await api.get('/api/users/me/profile');
+  return normalizeUserProfile(response.data);
+}
+
+export async function updateMyProfileRequest(input: UpdateMyProfilePayload): Promise<UserProfile> {
+  const response = await api.patch('/api/users/me/profile', input);
+  return normalizeUserProfile(response.data);
 }
 
 export async function changePasswordRequest(input: ChangePasswordPayload) {

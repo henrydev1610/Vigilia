@@ -13,6 +13,8 @@ import {
   userMeRequest,
 } from '../services/endpoints';
 import { ChangePasswordPayload, UpdateMePayload, User } from '../types/api';
+import { useUserProfileStore } from './userProfile.store';
+import { queryClient } from '../query/client';
 
 const AUTH_ACCESS_TOKEN_KEY = 'auth:accessToken';
 const AUTH_REFRESH_TOKEN_KEY = 'auth:refreshToken';
@@ -33,6 +35,12 @@ async function persistTokens(accessToken: string | null, refreshToken: string | 
   }
 
   await Promise.all(tasks);
+}
+
+async function clearUserSessionState() {
+  useUserProfileStore.getState().clearActiveUser();
+  queryClient.clear();
+  await persistTokens(null, null);
 }
 
 interface AuthState {
@@ -86,6 +94,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     set({ isLoading: true, error: null });
     try {
+      useUserProfileStore.getState().clearActiveUser();
       const tokens = await loginRequest({
         email: normalizedEmail,
         password: normalizedPassword,
@@ -128,6 +137,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const user = await authMeRequest().catch(async () => userMeRequest());
       set({ user });
+      useUserProfileStore.getState().bindToUser(user);
+      await useUserProfileStore.getState().loadRemoteProfile();
       return user;
     } catch {
       return null;
@@ -137,6 +148,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   updateMe: async (payload) => {
     const user = await updateMeRequest(payload);
     set({ user });
+    useUserProfileStore.getState().bindToUser(user);
     return user;
   },
 
@@ -147,7 +159,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   deleteMe: async (password) => {
     await deleteMeRequest({ password });
     set({ user: null, accessToken: null, refreshToken: null });
-    await persistTokens(null, null);
+    await clearUserSessionState();
   },
 
   restoreSession: async () => {
@@ -161,6 +173,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     if (!accessToken && !refreshToken) {
       set({ user: null, accessToken: null, refreshToken: null });
+      useUserProfileStore.getState().clearActiveUser();
       return false;
     }
 
@@ -168,7 +181,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     if (!refreshToken) {
       set({ user: null, accessToken: null, refreshToken: null });
-      await persistTokens(null, null);
+      await clearUserSessionState();
       return false;
     }
 
@@ -192,7 +205,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const refreshedUser = await get().fetchMe();
     if (!refreshedUser) {
       set({ user: null, accessToken: null, refreshToken: null });
-      await persistTokens(null, null);
+      await clearUserSessionState();
       return false;
     }
 
@@ -211,7 +224,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       return tokens.accessToken;
     } catch {
       set({ user: null, accessToken: null, refreshToken: null });
-      await persistTokens(null, null);
+      await clearUserSessionState();
       return null;
     }
   },
@@ -226,7 +239,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // Ignore network errors during logout to keep UX responsive.
     }
     set({ user: null, accessToken: null, refreshToken: null });
-    await persistTokens(null, null);
+    await clearUserSessionState();
   },
 }));
 
@@ -240,6 +253,6 @@ configureApiAuth({
   },
   handleAuthFailure: () => {
     useAuthStore.setState({ user: null, accessToken: null, refreshToken: null });
-    void persistTokens(null, null);
+    void clearUserSessionState();
   },
 });

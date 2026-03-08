@@ -29,6 +29,7 @@ import {
 import { AppText, ScreenBackground } from '../../components/ui';
 
 type ActiveModal = 'avatar' | 'name' | 'parties' | 'states' | 'theme' | null;
+type SecurityModal = 'password' | 'delete' | null;
 
 const PARTY_OPTIONS_BASE = [
   'PT', 'PL', 'PSDB', 'MDB', 'PSD', 'PP', 'UNIÃO', 'PSB', 'PDT', 'REPUBLICANOS', 'PODE', 'PSOL', 'NOVO',
@@ -53,10 +54,16 @@ export const ProfileScreen: React.FC = () => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
 
+  const authUserId = useAuthStore((state) => state.user?.id ?? null);
   const authName = useAuthStore((state) => state.user?.name ?? '');
   const authEmail = useAuthStore((state) => state.user?.email ?? '');
+  const updateMe = useAuthStore((state) => state.updateMe);
+  const changePassword = useAuthStore((state) => state.changePassword);
+  const deleteMe = useAuthStore((state) => state.deleteMe);
   const logout = useAuthStore((state) => state.logout);
 
+  const bindToUser = useUserProfileStore((state) => state.bindToUser);
+  const loadRemoteProfile = useUserProfileStore((state) => state.loadRemoteProfile);
   const displayName = useUserProfileStore((state) => state.displayName);
   const email = useUserProfileStore((state) => state.email);
   const avatarUri = useUserProfileStore((state) => state.avatarUri);
@@ -78,23 +85,33 @@ export const ProfileScreen: React.FC = () => {
   const setThemeMode = useThemeStore((state) => state.setMode);
 
   const [activeModal, setActiveModal] = useState<ActiveModal>(null);
+  const [securityModal, setSecurityModal] = useState<SecurityModal>(null);
   const [saving, setSaving] = useState(false);
 
   const [nameDraft, setNameDraft] = useState('');
   const [nameError, setNameError] = useState<string | null>(null);
+  const [securityError, setSecurityError] = useState<string | null>(null);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [deletePassword, setDeletePassword] = useState('');
 
   const [partyQuery, setPartyQuery] = useState('');
   const [partiesDraft, setPartiesDraft] = useState<string[]>([]);
   const [statesDraft, setStatesDraft] = useState<string[]>([]);
 
   useEffect(() => {
-    if (authName && (displayName === 'João Silva' || !displayName.trim())) {
-      setDisplayName(authName);
-    }
-  }, [authName, displayName, setDisplayName]);
+    if (!authUserId) return;
+    bindToUser({
+      id: authUserId,
+      name: authName,
+      email: authEmail,
+    });
+    void loadRemoteProfile();
+  }, [authEmail, authName, authUserId, bindToUser, loadRemoteProfile]);
 
   useEffect(() => {
-    if (authEmail && (email === 'joao@email.com' || !email.trim())) {
+    if (authEmail && !email.trim()) {
       setEmail(authEmail);
     }
   }, [authEmail, email, setEmail]);
@@ -119,6 +136,7 @@ export const ProfileScreen: React.FC = () => {
     setActiveModal(null);
     setNameError(null);
     setPartyQuery('');
+    setSecurityError(null);
   }, []);
 
   const openNameModal = useCallback(() => {
@@ -138,15 +156,20 @@ export const ProfileScreen: React.FC = () => {
     setActiveModal('states');
   }, [statesInterest]);
 
-  const onSaveName = useCallback(() => {
+  const onSaveName = useCallback(async () => {
     const normalized = nameDraft.trim().replace(/\s+/g, ' ');
     if (normalized.length < 2) {
       setNameError('Informe um nome com ao menos 2 caracteres.');
       return;
     }
-    setDisplayName(normalized);
-    closeModal();
-  }, [closeModal, nameDraft, setDisplayName]);
+    try {
+      await updateMe({ name: normalized });
+      setDisplayName(normalized);
+      closeModal();
+    } catch (error) {
+      setNameError(error instanceof Error ? error.message : 'Não foi possível atualizar o nome.');
+    }
+  }, [closeModal, nameDraft, setDisplayName, updateMe]);
 
   const toggleParty = useCallback((party: string) => {
     setPartiesDraft((prev) => (prev.includes(party) ? prev.filter((item) => item !== party) : [...prev, party]));
@@ -169,11 +192,12 @@ export const ProfileScreen: React.FC = () => {
   const onSave = useCallback(async () => {
     setSaving(true);
     try {
+      await loadRemoteProfile();
       Alert.alert('Preferências salvas', 'As configurações do seu perfil foram atualizadas.');
     } finally {
       setSaving(false);
     }
-  }, []);
+  }, [loadRemoteProfile]);
 
   const onSelectTheme = useCallback((mode: ThemeMode) => {
     setThemeMode(mode);
@@ -206,6 +230,52 @@ export const ProfileScreen: React.FC = () => {
     setAvatarUri(uri);
     closeModal();
   }, [closeModal, setAvatarUri]);
+
+  const handleChangePassword = useCallback(async () => {
+    setSecurityError(null);
+    if (!currentPassword.trim() || !newPassword.trim()) {
+      setSecurityError('Informe a senha atual e a nova senha.');
+      return;
+    }
+    if (newPassword.trim().length < 6) {
+      setSecurityError('A nova senha precisa ter ao menos 6 caracteres.');
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      setSecurityError('Confirmação de senha não confere.');
+      return;
+    }
+
+    try {
+      await changePassword({
+        currentPassword,
+        newPassword,
+      });
+      setSecurityModal(null);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmNewPassword('');
+      Alert.alert('Senha atualizada', 'Sua senha foi alterada com sucesso.');
+    } catch (error) {
+      setSecurityError(error instanceof Error ? error.message : 'Não foi possível alterar a senha.');
+    }
+  }, [changePassword, confirmNewPassword, currentPassword, newPassword]);
+
+  const handleDeleteAccount = useCallback(async () => {
+    setSecurityError(null);
+    if (!deletePassword.trim()) {
+      setSecurityError('Informe sua senha para confirmar.');
+      return;
+    }
+
+    try {
+      await deleteMe(deletePassword);
+      setSecurityModal(null);
+      setDeletePassword('');
+    } catch (error) {
+      setSecurityError(error instanceof Error ? error.message : 'Não foi possível excluir a conta.');
+    }
+  }, [deleteMe, deletePassword]);
 
   const themeLabel = themeMode === 'system' ? 'Automático' : themeMode === 'dark' ? 'Escuro' : 'Claro';
 
@@ -283,7 +353,7 @@ export const ProfileScreen: React.FC = () => {
 
         <ProfileSectionTitle title="Segurança" />
         <ProfileCard>
-          <ProfileRow icon="lock-outline" label="Alterar Senha" showChevron />
+          <ProfileRow icon="lock-outline" label="Alterar Senha" showChevron onPress={() => setSecurityModal('password')} />
           <ProfileToggleRow
             icon="fingerprint"
             label="Biometria / Face ID"
@@ -293,6 +363,9 @@ export const ProfileScreen: React.FC = () => {
         </ProfileCard>
 
         <LogoutButton onPress={() => void logout()} />
+        <Pressable style={styles.deleteAccountButton} onPress={() => setSecurityModal('delete')}>
+          <AppText weight="bold" style={styles.deleteAccountText}>Excluir minha conta</AppText>
+        </Pressable>
         <AppText style={styles.version}>TRANSPARÊNCIA PÚBLICA V2.4.0</AppText>
       </ScrollView>
 
@@ -398,6 +471,65 @@ export const ProfileScreen: React.FC = () => {
           </Pressable>
         </Pressable>
       </Modal>
+
+      <Modal transparent visible={securityModal === 'password'} animationType="fade" onRequestClose={() => setSecurityModal(null)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setSecurityModal(null)}>
+          <Pressable style={styles.modalCard} onPress={() => undefined}>
+            <AppText weight="bold" style={styles.sheetTitle}>Alterar senha</AppText>
+            <TextInput
+              value={currentPassword}
+              onChangeText={setCurrentPassword}
+              placeholder="Senha atual"
+              placeholderTextColor="#6D877A"
+              style={styles.input}
+              secureTextEntry
+            />
+            <TextInput
+              value={newPassword}
+              onChangeText={setNewPassword}
+              placeholder="Nova senha"
+              placeholderTextColor="#6D877A"
+              style={styles.input}
+              secureTextEntry
+            />
+            <TextInput
+              value={confirmNewPassword}
+              onChangeText={setConfirmNewPassword}
+              placeholder="Confirmar nova senha"
+              placeholderTextColor="#6D877A"
+              style={styles.input}
+              secureTextEntry
+            />
+            {securityError ? <AppText style={styles.errorText}>{securityError}</AppText> : null}
+            <View style={styles.modalActions}>
+              <Pressable style={styles.actionButtonGhost} onPress={() => setSecurityModal(null)}><AppText style={styles.actionGhostText}>Cancelar</AppText></Pressable>
+              <Pressable style={styles.actionButton} onPress={() => void handleChangePassword()}><AppText weight="bold" style={styles.actionText}>Salvar</AppText></Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <Modal transparent visible={securityModal === 'delete'} animationType="fade" onRequestClose={() => setSecurityModal(null)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setSecurityModal(null)}>
+          <Pressable style={styles.modalCard} onPress={() => undefined}>
+            <AppText weight="bold" style={styles.sheetTitle}>Excluir conta</AppText>
+            <AppText style={styles.deleteWarnText}>Essa ação é irreversível e removerá seu perfil.</AppText>
+            <TextInput
+              value={deletePassword}
+              onChangeText={setDeletePassword}
+              placeholder="Digite sua senha"
+              placeholderTextColor="#6D877A"
+              style={styles.input}
+              secureTextEntry
+            />
+            {securityError ? <AppText style={styles.errorText}>{securityError}</AppText> : null}
+            <View style={styles.modalActions}>
+              <Pressable style={styles.actionButtonGhost} onPress={() => setSecurityModal(null)}><AppText style={styles.actionGhostText}>Cancelar</AppText></Pressable>
+              <Pressable style={styles.deleteActionButton} onPress={() => void handleDeleteAccount()}><AppText weight="bold" style={styles.deleteActionText}>Excluir</AppText></Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </ScreenBackground>
   );
 };
@@ -446,6 +578,27 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 14,
     letterSpacing: 1,
+  },
+  deleteAccountButton: {
+    marginTop: 10,
+    minHeight: 44,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 140, 140, 0.28)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(126, 28, 36, 0.45)',
+  },
+  deleteAccountText: {
+    color: '#FFD3D3',
+    fontSize: 14,
+    lineHeight: 18,
+  },
+  deleteWarnText: {
+    color: '#FFB8B8',
+    fontSize: 13,
+    lineHeight: 17,
+    marginBottom: 10,
   },
   modalOverlay: {
     flex: 1,
@@ -551,6 +704,19 @@ const styles = StyleSheet.create({
   },
   actionText: {
     color: '#103121',
+    fontSize: 14,
+    lineHeight: 18,
+  },
+  deleteActionButton: {
+    minHeight: 38,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#B7313D',
+  },
+  deleteActionText: {
+    color: '#FFE3E3',
     fontSize: 14,
     lineHeight: 18,
   },
