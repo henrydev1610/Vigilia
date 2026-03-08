@@ -32,6 +32,8 @@ export const updateMyPasswordSchema = z
   });
 
 export const updateMyProfileSchema = z.object({
+  firstName: z.string().trim().min(2).max(120).optional(),
+  lastName: z.string().trim().min(2).max(120).optional(),
   avatarUrl: z.string().trim().url().max(2048).nullable().optional(),
   interestedParties: z.array(z.string().trim().min(1).max(24)).max(50).optional(),
   interestedStates: z.array(z.string().trim().min(1).max(24)).max(50).optional(),

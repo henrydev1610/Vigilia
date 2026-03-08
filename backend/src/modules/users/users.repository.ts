@@ -1,6 +1,8 @@
 import { prisma } from "../../infra/db/prisma";
 
 type ProfileUpdateData = {
+  firstName?: string;
+  lastName?: string;
   avatarUrl?: string | null;
   interestedParties?: string[];
   interestedStates?: string[];
@@ -22,12 +24,23 @@ export class UsersRepository {
     return prisma.user.create({ data });
   }
 
-  createWithProfile(data: { name: string; email: string; passwordHash: string }) {
+  createWithProfile(data: {
+    name: string;
+    email: string;
+    passwordHash: string;
+    firstName: string;
+    lastName: string;
+  }) {
     return prisma.user.create({
       data: {
-        ...data,
+        name: data.name,
+        email: data.email,
+        passwordHash: data.passwordHash,
         profile: {
-          create: {},
+          create: {
+            firstName: data.firstName,
+            lastName: data.lastName,
+          },
         },
       },
       include: {

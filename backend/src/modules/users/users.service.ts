@@ -9,6 +9,8 @@ type UpdateInput = {
 };
 
 type UpdateProfileInput = {
+  firstName?: string;
+  lastName?: string;
   avatarUrl?: string | null;
   interestedParties?: string[];
   interestedStates?: string[];
@@ -35,6 +37,9 @@ export class UsersService {
       email: user.email,
       createdAt: user.createdAt,
       profile: {
+        userId: profile.userId,
+        firstName: profile.firstName,
+        lastName: profile.lastName,
         avatarUrl: profile.avatarUrl,
         interestedParties: profile.interestedParties,
         interestedStates: profile.interestedStates,
@@ -119,6 +124,8 @@ export class UsersService {
     const profile = await this.usersRepository.upsertProfileByUserId(userId, {});
     return {
       userId: profile.userId,
+      firstName: profile.firstName,
+      lastName: profile.lastName,
       avatarUrl: profile.avatarUrl,
       interestedParties: profile.interestedParties,
       interestedStates: profile.interestedStates,
@@ -137,8 +144,18 @@ export class UsersService {
     }
 
     const profile = await this.usersRepository.upsertProfileByUserId(userId, input);
+
+    if ((typeof input.firstName === "string" && input.firstName.trim()) || (typeof input.lastName === "string" && input.lastName.trim())) {
+      const fullName = `${(input.firstName ?? profile.firstName).trim()} ${(input.lastName ?? profile.lastName).trim()}`.trim();
+      if (fullName.length >= 2) {
+        await this.usersRepository.update(userId, { name: fullName });
+      }
+    }
+
     return {
       userId: profile.userId,
+      firstName: profile.firstName,
+      lastName: profile.lastName,
       avatarUrl: profile.avatarUrl,
       interestedParties: profile.interestedParties,
       interestedStates: profile.interestedStates,

@@ -41,23 +41,28 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
-  async register(input: { name: string; email: string; password: string }) {
+  async register(input: { firstName: string; lastName: string; email: string; password: string }) {
     const existing = await this.usersRepository.findByEmail(input.email);
     if (existing) {
       throw new AppError("Email ja cadastrado", 409, "EMAIL_IN_USE");
     }
 
     const passwordHash = await bcrypt.hash(input.password, 10);
+    const fullName = `${input.firstName} ${input.lastName}`.trim();
     const user = await this.usersRepository.createWithProfile({
-      name: input.name,
+      name: fullName,
       email: input.email,
-      passwordHash
+      passwordHash,
+      firstName: input.firstName,
+      lastName: input.lastName,
     });
 
     return {
       id: user.id,
       name: user.name,
       email: user.email,
+      firstName: user.profile?.firstName ?? input.firstName,
+      lastName: user.profile?.lastName ?? input.lastName,
       createdAt: user.createdAt
     };
   }

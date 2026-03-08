@@ -64,6 +64,8 @@ export const ProfileScreen: React.FC = () => {
 
   const bindToUser = useUserProfileStore((state) => state.bindToUser);
   const loadRemoteProfile = useUserProfileStore((state) => state.loadRemoteProfile);
+  const firstName = useUserProfileStore((state) => state.firstName);
+  const lastName = useUserProfileStore((state) => state.lastName);
   const displayName = useUserProfileStore((state) => state.displayName);
   const email = useUserProfileStore((state) => state.email);
   const avatarUri = useUserProfileStore((state) => state.avatarUri);
@@ -131,6 +133,7 @@ export const ProfileScreen: React.FC = () => {
 
   const displayStates = useMemo(() => asChipSummary(statesInterest, (uf) => `${UF_NAMES[uf] ?? uf} (${uf})`), [statesInterest]);
   const displayParties = useMemo(() => asChipSummary(partiesInterest), [partiesInterest]);
+  const profileFullName = useMemo(() => `${firstName} ${lastName}`.trim() || displayName, [displayName, firstName, lastName]);
 
   const closeModal = useCallback(() => {
     setActiveModal(null);
@@ -140,10 +143,10 @@ export const ProfileScreen: React.FC = () => {
   }, []);
 
   const openNameModal = useCallback(() => {
-    setNameDraft(displayName);
+    setNameDraft(profileFullName);
     setNameError(null);
     setActiveModal('name');
-  }, [displayName]);
+  }, [profileFullName]);
 
   const openPartiesModal = useCallback(() => {
     setPartiesDraft(partiesInterest);
@@ -296,7 +299,7 @@ export const ProfileScreen: React.FC = () => {
 
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 24 + insets.bottom }]} showsVerticalScrollIndicator={false}>
         <ProfileHeader
-          name={displayName}
+          name={profileFullName}
           subtitle={`Monitorando ${monitoringCount} políticos ativamente`}
           avatarUri={avatarUri}
           onPressAvatar={() => setActiveModal('avatar')}
@@ -304,7 +307,7 @@ export const ProfileScreen: React.FC = () => {
 
         <ProfileSectionTitle title="Dados pessoais" />
         <ProfileCard>
-          <ProfileRow icon="account-outline" label="Nome Completo" value={displayName} showChevron onPress={openNameModal} />
+          <ProfileRow icon="account-outline" label="Nome Completo" value={profileFullName} showChevron onPress={openNameModal} />
           <ProfileRow icon="email-outline" label="E-mail" value={email} showChevron />
         </ProfileCard>
 

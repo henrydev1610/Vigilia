@@ -21,6 +21,8 @@ model User {
 model Profile {
   id                String   @id @default(uuid())
   userId            String   @unique
+  firstName         String   @default("")
+  lastName          String   @default("")
   avatarUrl         String?
   interestedParties String[] @default([])
   interestedStates  String[] @default([])

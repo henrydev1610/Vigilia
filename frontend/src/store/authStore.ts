@@ -53,7 +53,7 @@ interface AuthState {
   isAuthenticated: () => boolean;
   clearError: () => void;
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
+  register: (firstName: string, lastName: string, email: string, password: string) => Promise<void>;
   fetchMe: () => Promise<User | null>;
   updateMe: (payload: UpdateMePayload) => Promise<User | null>;
   changePassword: (payload: ChangePasswordPayload) => Promise<void>;
@@ -113,14 +113,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  register: async (name, email, password) => {
+  register: async (firstName, lastName, email, password) => {
     const normalizedEmail = email.trim().toLowerCase();
     const normalizedPassword = password.trim();
+    const normalizedFirstName = firstName.trim();
+    const normalizedLastName = lastName.trim();
 
     set({ isLoading: true, error: null });
     try {
       await registerRequest({
-        name: name.trim(),
+        firstName: normalizedFirstName,
+        lastName: normalizedLastName,
         email: normalizedEmail,
         password: normalizedPassword,
       });
