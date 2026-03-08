@@ -38,6 +38,8 @@ function normalizeUserProfile(payload: any): UserProfile {
   const raw = payload?.data ?? payload;
   return {
     userId: String(raw?.userId ?? raw?.user_id ?? ''),
+    firstName: String(raw?.firstName ?? ''),
+    lastName: String(raw?.lastName ?? ''),
     avatarUrl: raw?.avatarUrl ?? null,
     interestedParties: Array.isArray(raw?.interestedParties) ? raw.interestedParties.map((item: unknown) => String(item)) : [],
     interestedStates: Array.isArray(raw?.interestedStates) ? raw.interestedStates.map((item: unknown) => String(item)) : [],

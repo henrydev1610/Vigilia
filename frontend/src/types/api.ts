@@ -18,6 +18,8 @@ export interface User {
 
 export interface UserProfile {
   userId: string;
+  firstName: string;
+  lastName: string;
   avatarUrl: string | null;
   interestedParties: string[];
   interestedStates: string[];
@@ -34,7 +36,8 @@ export interface HealthResponse {
 }
 
 export interface RegisterPayload {
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   password: string;
 }
@@ -54,6 +57,8 @@ export interface UpdateMePayload {
 }
 
 export interface UpdateMyProfilePayload {
+  firstName?: string;
+  lastName?: string;
   avatarUrl?: string | null;
   interestedParties?: string[];
   interestedStates?: string[];

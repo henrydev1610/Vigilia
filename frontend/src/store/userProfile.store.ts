@@ -6,6 +6,8 @@ import { getMyProfileRequest, updateMyProfileRequest } from '../services/endpoin
 export const USER_PROFILE_STORAGE_KEY = 'user-profile-store-v2';
 
 export interface StoredUserProfile {
+  firstName: string;
+  lastName: string;
   displayName: string;
   email: string;
   avatarUri: string | null;
@@ -34,6 +36,8 @@ interface UserProfileState extends StoredUserProfile {
 }
 
 const EMPTY_PROFILE: StoredUserProfile = {
+  firstName: '',
+  lastName: '',
   displayName: '',
   email: '',
   avatarUri: null,
@@ -50,6 +54,8 @@ const dedupeAndClean = (values: string[]) => Array.from(new Set(values.map((item
 
 function asRemotePayload(input: Partial<StoredUserProfile>) {
   const next: Record<string, unknown> = {};
+  if ('firstName' in input) next.firstName = input.firstName ?? '';
+  if ('lastName' in input) next.lastName = input.lastName ?? '';
   if ('avatarUri' in input) next.avatarUrl = input.avatarUri ?? null;
   if ('partiesInterest' in input) next.interestedParties = input.partiesInterest ?? [];
   if ('statesInterest' in input) next.interestedStates = input.statesInterest ?? [];
@@ -62,10 +68,27 @@ function asRemotePayload(input: Partial<StoredUserProfile>) {
 function sanitizeProfilePatch(input: Partial<StoredUserProfile>): Partial<StoredUserProfile> {
   const patch: Partial<StoredUserProfile> = {};
 
+  if (typeof input.firstName === 'string') {
+    const normalizedFirstName = normalizeName(input.firstName);
+    if (normalizedFirstName.length >= 2) {
+      patch.firstName = normalizedFirstName;
+    }
+  }
+  if (typeof input.lastName === 'string') {
+    const normalizedLastName = normalizeName(input.lastName);
+    if (normalizedLastName.length >= 2) {
+      patch.lastName = normalizedLastName;
+    }
+  }
   if (typeof input.displayName === 'string') {
     const normalized = normalizeName(input.displayName);
     if (normalized.length >= 2) {
       patch.displayName = normalized;
+      const parts = normalized.split(' ').filter(Boolean);
+      if (parts.length > 0) {
+        patch.firstName = parts[0];
+        patch.lastName = parts.slice(1).join(' ') || parts[0];
+      }
     }
   }
   if (typeof input.email === 'string') {
@@ -118,8 +141,12 @@ export const useUserProfileStore = create<UserProfileState>()(
 
         const normalizedName = normalizeName(user.name);
         const normalizedEmail = normalizeEmail(user.email);
+        const [derivedFirstName, ...restName] = normalizedName.split(' ').filter(Boolean);
+        const derivedLastName = restName.join(' ');
         const existing = get().profilesByUserId[user.id] ?? EMPTY_PROFILE;
         const hydrated = mergeProfile(existing, {
+          firstName: existing.firstName || derivedFirstName || EMPTY_PROFILE.firstName,
+          lastName: existing.lastName || derivedLastName || EMPTY_PROFILE.lastName,
           displayName: normalizedName || existing.displayName || EMPTY_PROFILE.displayName,
           email: normalizedEmail || existing.email || EMPTY_PROFILE.email,
         });
@@ -142,6 +169,9 @@ export const useUserProfileStore = create<UserProfileState>()(
         if (!remote || remote.userId !== activeUserId) return;
 
         const patch: Partial<StoredUserProfile> = {
+          firstName: remote.firstName,
+          lastName: remote.lastName,
+          displayName: `${remote.firstName} ${remote.lastName}`.trim(),
           avatarUri: remote.avatarUrl ?? null,
           partiesInterest: remote.interestedParties,
           statesInterest: remote.interestedStates,
