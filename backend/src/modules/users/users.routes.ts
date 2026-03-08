@@ -1,5 +1,5 @@
 import { FastifyInstance } from "fastify";
-import { deleteMeSchema, updateMeSchema, updateMyPasswordSchema } from "./users.schemas";
+import { deleteMeSchema, updateMeSchema, updateMyPasswordSchema, updateMyProfileSchema } from "./users.schemas";
 import { UsersService } from "./users.service";
 
 export async function usersRoutes(app: FastifyInstance) {
@@ -19,6 +19,17 @@ export async function usersRoutes(app: FastifyInstance) {
   app.patch("/api/users/me/password", { preHandler: [app.authenticate] }, async (request) => {
     const body = updateMyPasswordSchema.parse(request.body);
     const data = await usersService.updateMyPassword(request.user.sub, body.currentPassword, body.newPassword);
+    return { success: true, data };
+  });
+
+  app.get("/api/users/me/profile", { preHandler: [app.authenticate] }, async (request) => {
+    const data = await usersService.getMyProfile(request.user.sub);
+    return { success: true, data };
+  });
+
+  app.patch("/api/users/me/profile", { preHandler: [app.authenticate] }, async (request) => {
+    const body = updateMyProfileSchema.parse(request.body);
+    const data = await usersService.updateMyProfile(request.user.sub, body);
     return { success: true, data };
   });
 

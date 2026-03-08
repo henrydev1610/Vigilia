@@ -8,6 +8,15 @@ type UpdateInput = {
   email?: string;
 };
 
+type UpdateProfileInput = {
+  avatarUrl?: string | null;
+  interestedParties?: string[];
+  interestedStates?: string[];
+  alertsEnabled?: boolean;
+  biometricEnabled?: boolean;
+  monitoringCount?: number;
+};
+
 export class UsersService {
   private readonly usersRepository = new UsersRepository();
   private readonly refreshTokenRepository = new RefreshTokenRepository();
@@ -18,11 +27,21 @@ export class UsersService {
       throw new AppError("Usuario nao encontrado", 404, "USER_NOT_FOUND");
     }
 
+    const profile = await this.usersRepository.upsertProfileByUserId(userId, {});
+
     return {
       id: user.id,
       name: user.name,
       email: user.email,
-      createdAt: user.createdAt
+      createdAt: user.createdAt,
+      profile: {
+        avatarUrl: profile.avatarUrl,
+        interestedParties: profile.interestedParties,
+        interestedStates: profile.interestedStates,
+        alertsEnabled: profile.alertsEnabled,
+        biometricEnabled: profile.biometricEnabled,
+        monitoringCount: profile.monitoringCount,
+      },
     };
   }
 
@@ -88,6 +107,46 @@ export class UsersService {
 
     return {
       deleted: true
+    };
+  }
+
+  async getMyProfile(userId: string) {
+    const user = await this.usersRepository.findById(userId);
+    if (!user) {
+      throw new AppError("Usuario nao encontrado", 404, "USER_NOT_FOUND");
+    }
+
+    const profile = await this.usersRepository.upsertProfileByUserId(userId, {});
+    return {
+      userId: profile.userId,
+      avatarUrl: profile.avatarUrl,
+      interestedParties: profile.interestedParties,
+      interestedStates: profile.interestedStates,
+      alertsEnabled: profile.alertsEnabled,
+      biometricEnabled: profile.biometricEnabled,
+      monitoringCount: profile.monitoringCount,
+      createdAt: profile.createdAt,
+      updatedAt: profile.updatedAt,
+    };
+  }
+
+  async updateMyProfile(userId: string, input: UpdateProfileInput) {
+    const user = await this.usersRepository.findById(userId);
+    if (!user) {
+      throw new AppError("Usuario nao encontrado", 404, "USER_NOT_FOUND");
+    }
+
+    const profile = await this.usersRepository.upsertProfileByUserId(userId, input);
+    return {
+      userId: profile.userId,
+      avatarUrl: profile.avatarUrl,
+      interestedParties: profile.interestedParties,
+      interestedStates: profile.interestedStates,
+      alertsEnabled: profile.alertsEnabled,
+      biometricEnabled: profile.biometricEnabled,
+      monitoringCount: profile.monitoringCount,
+      createdAt: profile.createdAt,
+      updatedAt: profile.updatedAt,
     };
   }
 }
