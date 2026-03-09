@@ -5,7 +5,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { RootNavigator } from './src/navigation/RootNavigator';
-import { useAppTheme } from './src/theme';
+import { AppThemeProvider, useAppTheme } from './src/theme';
 import { queryClient } from './src/query/client';
 import { preventNativeSplashAutoHide } from './src/utils/nativeSplash';
 
@@ -40,7 +40,9 @@ const App: React.FC = () => {
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
-          <AppContainer />
+          <AppThemeProvider>
+            <AppContainer />
+          </AppThemeProvider>
         </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

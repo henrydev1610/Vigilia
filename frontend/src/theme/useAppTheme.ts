@@ -1,9 +1,15 @@
-﻿import { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 import { useThemeStore } from '../store/theme.store';
+import { useThemePreference } from './AppThemeProvider';
 import { resolveTheme } from './tokens';
 
 export function useAppTheme() {
+  const preference = useThemePreference();
+  if (preference) {
+    return preference.theme;
+  }
+
   const mode = useThemeStore((state) => state.mode);
   const setResolvedThemeFromSystem = useThemeStore((state) => state.setResolvedThemeFromSystem);
   const systemScheme = useColorScheme();

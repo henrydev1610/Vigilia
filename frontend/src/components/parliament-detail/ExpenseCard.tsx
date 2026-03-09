@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useAppTheme } from '../../theme';
 
 interface ExpenseCardProps {
   dateLabel: string;
@@ -18,22 +19,35 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
   invoiceLabel,
   onPress,
 }) => {
+  const theme = useAppTheme();
+
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.card, pressed ? styles.cardPressed : null]}>
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.card,
+        {
+          backgroundColor: theme.colors.surface,
+          borderColor: theme.colors.border,
+          shadowColor: theme.shadow.card.shadowColor,
+        },
+        pressed ? styles.cardPressed : null,
+      ]}
+    >
       <View style={styles.topRow}>
-        <Text style={styles.date}>{dateLabel}</Text>
-        <Text style={styles.value}>{valueLabel}</Text>
+        <Text style={[styles.date, { color: theme.colors.textSecondary }]}>{dateLabel}</Text>
+        <Text style={[styles.value, { color: theme.colors.text }]}>{valueLabel}</Text>
       </View>
 
-      <Text style={styles.title} numberOfLines={2}>
+      <Text style={[styles.title, { color: theme.colors.text }]} numberOfLines={2}>
         {title}
       </Text>
 
       <View style={styles.bottomRow}>
-        <Text numberOfLines={1} ellipsizeMode="tail" style={styles.supplier}>
+        <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.supplier, { color: theme.colors.textSecondary }]}> 
           {supplierLabel}
         </Text>
-        <Text style={styles.invoice}>{invoiceLabel}</Text>
+        <Text style={[styles.invoice, { color: theme.colors.textMuted }]}>{invoiceLabel}</Text>
       </View>
     </Pressable>
   );
@@ -41,14 +55,11 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#0D2C1C',
-    borderColor: 'rgba(30, 171, 95, 0.22)',
     borderRadius: 16,
     borderWidth: 1,
     marginBottom: 14,
     paddingHorizontal: 16,
     paddingVertical: 16,
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.14,
     shadowRadius: 14,
@@ -64,21 +75,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   date: {
-    color: '#81A794',
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 0.4,
     textTransform: 'uppercase',
   },
   value: {
-    color: '#E8F7EE',
     fontSize: 20,
     fontWeight: '700',
     letterSpacing: -0.1,
     lineHeight: 24,
   },
   title: {
-    color: '#EEF8F1',
     fontSize: 16,
     fontWeight: '700',
     letterSpacing: -0.1,
@@ -91,14 +99,12 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   supplier: {
-    color: '#9AB8A9',
     flex: 1,
     fontSize: 13,
     fontWeight: '600',
     marginRight: 10,
   },
   invoice: {
-    color: '#638877',
     fontSize: 12,
     fontWeight: '700',
   },

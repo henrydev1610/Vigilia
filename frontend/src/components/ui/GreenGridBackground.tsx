@@ -1,6 +1,7 @@
 import React, { memo } from 'react';
 import { StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import Svg, { Defs, Path, Pattern, Rect } from 'react-native-svg';
+import { useAppTheme } from '../../theme';
 
 interface GreenGridBackgroundProps {
   style?: StyleProp<ViewStyle>;
@@ -12,11 +13,15 @@ interface GreenGridBackgroundProps {
 
 const GreenGridBackgroundComponent: React.FC<GreenGridBackgroundProps> = ({
   style,
-  baseColor = '#06160F',
-  lineColor = '#5CCB92',
-  lineOpacity = 0.06,
+  baseColor,
+  lineColor,
+  lineOpacity = 1,
   cellSize = 32,
 }) => {
+  const theme = useAppTheme();
+  const resolvedBaseColor = baseColor ?? theme.colors.background;
+  const resolvedLineColor = lineColor ?? theme.colors.gridLine;
+
   return (
     <View pointerEvents="none" style={[styles.absoluteFill, style]}>
       <Svg width="100%" height="100%">
@@ -26,13 +31,13 @@ const GreenGridBackgroundComponent: React.FC<GreenGridBackgroundProps> = ({
               d={`M ${cellSize} 0 L 0 0 0 ${cellSize}`}
               fill="none"
               opacity={lineOpacity}
-              stroke={lineColor}
+              stroke={resolvedLineColor}
               strokeWidth={1}
             />
           </Pattern>
         </Defs>
 
-        <Rect width="100%" height="100%" fill={baseColor} />
+        <Rect width="100%" height="100%" fill={resolvedBaseColor} />
         <Rect width="100%" height="100%" fill="url(#green-grid-pattern)" />
       </Svg>
     </View>

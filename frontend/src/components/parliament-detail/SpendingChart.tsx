@@ -1,6 +1,7 @@
 import React, { memo, useMemo, useState } from 'react';
 import { LayoutChangeEvent, StyleSheet, Text, View } from 'react-native';
 import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg';
+import { useAppTheme } from '../../theme';
 
 interface SpendingPoint {
   key: string;
@@ -44,6 +45,7 @@ function buildSmoothPath(points: CartesianPoint[]) {
 }
 
 const SpendingChartComponent: React.FC<SpendingChartProps> = ({ points, xLabelStep }) => {
+  const theme = useAppTheme();
   const [chartWidth, setChartWidth] = useState(0);
   const chartHeight = 178;
   const innerPadding = 18;
@@ -105,23 +107,23 @@ const SpendingChartComponent: React.FC<SpendingChartProps> = ({ points, xLabelSt
   };
 
   return (
-    <View style={styles.container} onLayout={onLayout}>
+    <View style={[styles.container, { backgroundColor: theme.colors.chartSurface, borderColor: theme.colors.border }]} onLayout={onLayout}>
       {chartWidth > 0 ? (
         <Svg width={chartWidth} height={chartHeight}>
           <Defs>
             <LinearGradient id="spendingArea" x1="0" x2="0" y1="0" y2="1">
-              <Stop offset="0%" stopColor="#24E06F" stopOpacity={0.52} />
-              <Stop offset="100%" stopColor="#24E06F" stopOpacity={0.04} />
+              <Stop offset="0%" stopColor={theme.colors.chartAreaStart} stopOpacity={1} />
+              <Stop offset="100%" stopColor={theme.colors.chartAreaEnd} stopOpacity={1} />
             </LinearGradient>
           </Defs>
-        <Path d={areaPath} fill="url(#spendingArea)" />
-        <Path d={linePath} fill="none" stroke="#1FE26C" strokeWidth={3} strokeLinecap="round" />
-      </Svg>
+          <Path d={areaPath} fill="url(#spendingArea)" />
+          <Path d={linePath} fill="none" stroke={theme.colors.chartLine} strokeWidth={3} strokeLinecap="round" />
+        </Svg>
       ) : null}
 
       <View style={styles.labelsRow}>
         {parsedPoints.map((point, index) => (
-          <Text key={point.key} style={styles.label}>
+          <Text key={point.key} style={[styles.label, { color: theme.colors.chartAxis }]}>
             {visibleLabelIndexes.has(index) ? point.label : ' '}
           </Text>
         ))}
@@ -134,8 +136,8 @@ export const SpendingChart = memo(SpendingChartComponent);
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#0E2C1D',
     borderRadius: 20,
+    borderWidth: 1,
     marginTop: 14,
     overflow: 'hidden',
     paddingBottom: 14,
@@ -148,7 +150,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   label: {
-    color: '#718F80',
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 0.9,

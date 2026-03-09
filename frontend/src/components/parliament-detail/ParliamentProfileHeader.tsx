@@ -1,6 +1,7 @@
 import React from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
+import { useAppTheme } from '../../theme';
 import { toAbsoluteUrl } from '../../services/api';
 
 interface ParliamentProfileHeaderProps {
@@ -20,36 +21,37 @@ export const ParliamentProfileHeader: React.FC<ParliamentProfileHeaderProps> = (
   mandateLabel,
   statusLabel,
 }) => {
+  const theme = useAppTheme();
   const uri = toAbsoluteUrl(avatarUrl) ?? avatarUrl;
 
   return (
     <View style={styles.container}>
       <View style={styles.avatarWrap}>
         {uri ? (
-          <Image source={{ uri }} style={styles.avatar} />
+          <Image source={{ uri }} style={[styles.avatar, { borderColor: theme.colors.primary }]} />
         ) : (
-          <View style={styles.avatarFallback}>
-            <Icon name="account" size={40} color="#B6CBBF" />
+          <View style={[styles.avatarFallback, { backgroundColor: theme.colors.surfaceStrong, borderColor: theme.colors.primary }]}>
+            <Icon name="account" size={40} color={theme.colors.textSecondary} />
           </View>
         )}
-        <Pressable style={styles.avatarBadge}>
-          <Icon name="check-decagram" size={14} color="#052113" />
+        <Pressable style={[styles.avatarBadge, { backgroundColor: theme.colors.primary, borderColor: theme.colors.surface }]}>
+          <Icon name="check-decagram" size={14} color={theme.colors.textInverse} />
         </Pressable>
       </View>
 
-      <Text style={styles.name} numberOfLines={2}>
+      <Text style={[styles.name, { color: theme.colors.text }]} numberOfLines={2}>
         {name}
       </Text>
-      <Text style={styles.subtitle}>
+      <Text style={[styles.subtitle, { color: theme.colors.primary }]}> 
         PARTIDO ({party})  ESTADO - {uf}
       </Text>
 
       <View style={styles.chipsRow}>
-        <View style={styles.primaryChip}>
-          <Text style={styles.primaryChipLabel}>{mandateLabel}</Text>
+        <View style={[styles.primaryChip, { backgroundColor: theme.colors.primary }]}> 
+          <Text style={[styles.primaryChipLabel, { color: theme.colors.textInverse }]}>{mandateLabel}</Text>
         </View>
         <View style={styles.secondaryChip}>
-          <Text style={styles.secondaryChipLabel}>{statusLabel}</Text>
+          <Text style={[styles.secondaryChipLabel, { color: theme.colors.textSecondary }]}>{statusLabel}</Text>
         </View>
       </View>
     </View>
@@ -66,7 +68,6 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   avatar: {
-    borderColor: '#1EE26D',
     borderWidth: 3,
     borderRadius: 46,
     height: 92,
@@ -74,8 +75,6 @@ const styles = StyleSheet.create({
   },
   avatarFallback: {
     alignItems: 'center',
-    backgroundColor: '#294234',
-    borderColor: '#1EE26D',
     borderWidth: 3,
     borderRadius: 46,
     height: 92,
@@ -84,8 +83,6 @@ const styles = StyleSheet.create({
   },
   avatarBadge: {
     alignItems: 'center',
-    backgroundColor: '#17D968',
-    borderColor: '#0A2819',
     borderRadius: 13,
     borderWidth: 2,
     bottom: 4,
@@ -96,7 +93,6 @@ const styles = StyleSheet.create({
     width: 26,
   },
   name: {
-    color: '#E8F6EE',
     fontSize: 32,
     fontWeight: '800',
     letterSpacing: -0.5,
@@ -104,7 +100,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   subtitle: {
-    color: '#29C56A',
     fontSize: 13,
     fontWeight: '700',
     letterSpacing: 0.3,
@@ -118,13 +113,11 @@ const styles = StyleSheet.create({
     marginTop: 14,
   },
   primaryChip: {
-    backgroundColor: '#1BD165',
     borderRadius: 999,
     paddingHorizontal: 14,
     paddingVertical: 7,
   },
   primaryChipLabel: {
-    color: '#07321B',
     fontSize: 12,
     fontWeight: '700',
   },
@@ -134,7 +127,6 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
   },
   secondaryChipLabel: {
-    color: '#D9F1E2',
     fontSize: 12,
     fontWeight: '700',
   },

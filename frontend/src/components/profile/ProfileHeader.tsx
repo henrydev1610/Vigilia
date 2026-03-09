@@ -1,6 +1,7 @@
 import React, { memo } from 'react';
 import { Image, Pressable, StyleSheet, View } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
+import { useAppTheme } from '../../theme';
 import { AppText } from '../ui';
 
 interface ProfileHeaderProps {
@@ -16,27 +17,29 @@ const ProfileHeaderComponent: React.FC<ProfileHeaderProps> = ({
   avatarUri,
   onPressAvatar,
 }) => {
+  const theme = useAppTheme();
+
   return (
     <View style={styles.container}>
       <Pressable style={styles.avatarWrap} onPress={onPressAvatar}>
         {avatarUri ? (
-          <Image source={{ uri: avatarUri }} style={styles.avatar} resizeMode="cover" />
+          <Image source={{ uri: avatarUri }} style={[styles.avatar, { borderColor: theme.colors.primary, backgroundColor: theme.colors.surfaceStrong }]} resizeMode="cover" />
         ) : (
-          <View style={[styles.avatar, styles.fallback]}>
-            <AppText weight="bold" style={styles.initials}>
+          <View style={[styles.avatar, styles.fallback, { borderColor: theme.colors.primary, backgroundColor: theme.colors.surfaceStrong }]}>
+            <AppText weight="bold" style={[styles.initials, { color: theme.colors.text }]}>
               {name.slice(0, 1).toUpperCase()}
             </AppText>
           </View>
         )}
-        <View style={styles.cameraButton}>
-          <Icon name="camera" size={14} color="#0B2A1A" />
+        <View style={[styles.cameraButton, { backgroundColor: theme.colors.primary, borderColor: theme.colors.surface }]}>
+          <Icon name="camera" size={14} color={theme.colors.textInverse} />
         </View>
       </Pressable>
 
-      <AppText weight="bold" style={styles.name}>
+      <AppText weight="bold" style={[styles.name, { color: theme.colors.text }]}>
         {name}
       </AppText>
-      <AppText style={styles.subtitle}>{subtitle}</AppText>
+      <AppText style={[styles.subtitle, { color: theme.colors.textSecondary }]}>{subtitle}</AppText>
     </View>
   );
 };
@@ -61,15 +64,12 @@ const styles = StyleSheet.create({
     height: 104,
     borderRadius: 52,
     borderWidth: 3,
-    borderColor: '#22D663',
-    backgroundColor: '#1B3328',
   },
   fallback: {
     alignItems: 'center',
     justifyContent: 'center',
   },
   initials: {
-    color: '#DFF2E7',
     fontSize: 34,
     lineHeight: 41,
   },
@@ -80,21 +80,17 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: '#22D663',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: '#0B1D15',
   },
   name: {
     marginTop: 10,
-    color: '#E8F4EC',
     fontSize: 24,
     lineHeight: 30,
   },
   subtitle: {
     marginTop: 2,
-    color: '#90A99B',
     fontSize: 13,
     lineHeight: 17,
   },

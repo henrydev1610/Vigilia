@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Modal, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
+import { useAppTheme } from '../../theme';
 
 interface ExpenseSheetData {
   valueLabel: string;
@@ -21,6 +22,7 @@ export const ExpenseDetailBottomSheet: React.FC<ExpenseDetailBottomSheetProps> =
   onClose,
   onDownloadPdf,
 }) => {
+  const theme = useAppTheme();
   const [mounted, setMounted] = useState(visible);
   const translateY = useRef(new Animated.Value(260)).current;
   const opacity = useRef(new Animated.Value(0)).current;
@@ -80,24 +82,24 @@ export const ExpenseDetailBottomSheet: React.FC<ExpenseDetailBottomSheetProps> =
 
   return (
     <Modal visible transparent animationType="none" onRequestClose={onClose}>
-      <Animated.View style={[styles.overlay, { opacity }]}>
+      <Animated.View style={[styles.overlay, { backgroundColor: theme.colors.overlay, opacity }]}>
         <Pressable style={styles.backdrop} onPress={onClose} />
-        <Animated.View style={[styles.sheet, { transform: [{ translateY }] }]}>
-          <View style={styles.grabber} />
-          <Text style={styles.value}>{expense?.valueLabel ?? 'R$ 0,00'}</Text>
-          <Text numberOfLines={2} style={styles.title}>
+        <Animated.View style={[styles.sheet, { backgroundColor: theme.colors.surface, shadowColor: theme.shadow.card.shadowColor, transform: [{ translateY }] }]}>
+          <View style={[styles.grabber, { backgroundColor: theme.colors.surfaceStrong }]} />
+          <Text style={[styles.value, { color: theme.colors.primary }]}>{expense?.valueLabel ?? 'R$ 0,00'}</Text>
+          <Text numberOfLines={2} style={[styles.title, { color: theme.colors.text }]}>
             {expense?.title ?? 'Despesa'}
           </Text>
 
           <View style={styles.actionsRow}>
-            <Pressable disabled={shareDisabled} onPress={handleShare} style={styles.action}>
-              <Icon name="share-variant-outline" size={18} color="#DDF2E6" />
-              <Text style={styles.actionLabel}>Compartilhar</Text>
+            <Pressable disabled={shareDisabled} onPress={handleShare} style={[styles.action, { backgroundColor: theme.colors.surfaceAlt, borderColor: theme.colors.border }]}> 
+              <Icon name="share-variant-outline" size={18} color={theme.colors.text} />
+              <Text style={[styles.actionLabel, { color: theme.colors.text }]}>Compartilhar</Text>
             </Pressable>
 
-            <Pressable onPress={onDownloadPdf} style={styles.action}>
-              <Icon name="download-box-outline" size={18} color="#DDF2E6" />
-              <Text style={styles.actionLabel}>Baixar PDF</Text>
+            <Pressable onPress={onDownloadPdf} style={[styles.action, { backgroundColor: theme.colors.surfaceAlt, borderColor: theme.colors.border }]}> 
+              <Icon name="download-box-outline" size={18} color={theme.colors.text} />
+              <Text style={[styles.actionLabel, { color: theme.colors.text }]}>Baixar PDF</Text>
             </Pressable>
           </View>
         </Animated.View>
@@ -108,7 +110,6 @@ export const ExpenseDetailBottomSheet: React.FC<ExpenseDetailBottomSheetProps> =
 
 const styles = StyleSheet.create({
   overlay: {
-    backgroundColor: 'rgba(3, 10, 7, 0.62)',
     flex: 1,
     justifyContent: 'flex-end',
   },
@@ -117,13 +118,11 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   sheet: {
-    backgroundColor: '#0F2519',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingBottom: 28,
     paddingHorizontal: 20,
     paddingTop: 12,
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: -3 },
     shadowOpacity: 0.25,
     shadowRadius: 12,
@@ -131,14 +130,12 @@ const styles = StyleSheet.create({
   },
   grabber: {
     alignSelf: 'center',
-    backgroundColor: '#3E5F4D',
     borderRadius: 99,
     height: 4,
     marginBottom: 12,
     width: 42,
   },
   value: {
-    color: '#1FE16C',
     fontSize: 32,
     fontWeight: '900',
     letterSpacing: -0.6,
@@ -146,7 +143,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   title: {
-    color: '#E7F6ED',
     fontSize: 16,
     fontWeight: '700',
     marginTop: 8,
@@ -159,8 +155,6 @@ const styles = StyleSheet.create({
   },
   action: {
     alignItems: 'center',
-    backgroundColor: '#123322',
-    borderColor: 'rgba(34, 197, 94, 0.3)',
     borderRadius: 14,
     borderWidth: 1,
     flex: 1,
@@ -170,7 +164,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   actionLabel: {
-    color: '#DDF2E6',
     fontSize: 14,
     fontWeight: '700',
   },

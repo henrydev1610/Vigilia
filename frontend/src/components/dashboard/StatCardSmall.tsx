@@ -1,8 +1,8 @@
-﻿import React from 'react';
+import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
-import { fallbackFonts } from '../../theme';
+import { fallbackFonts, useAppTheme } from '../../theme';
 
 interface StatCardSmallProps {
   title: string;
@@ -21,24 +21,31 @@ export const StatCardSmall: React.FC<StatCardSmallProps> = ({
   line2Tone = 'muted',
   showAlertIcon,
 }) => {
+  const theme = useAppTheme();
+
   return (
-    <LinearGradient colors={['#142A20', '#121F19']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.card}>
-      <Text style={[styles.title, { fontFamily: fallbackFonts.bodyMedium }]}>{title}</Text>
-      <Text style={[styles.line1, line1Tone === 'red' ? styles.red : null, { fontFamily: fallbackFonts.headingBold }]}>{line1}</Text>
+    <LinearGradient colors={theme.gradients.card} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.card, { borderColor: theme.colors.border }]}> 
+      <Text style={[styles.title, { color: theme.colors.textMuted, fontFamily: fallbackFonts.bodyMedium }]}>{title}</Text>
+      <Text style={[styles.line1, { color: line1Tone === 'red' ? theme.colors.danger : theme.colors.text, fontFamily: fallbackFonts.headingBold }]}>{line1}</Text>
 
       <View style={styles.line2Row}>
         <Text
           style={[
             styles.line2,
-            line2Tone === 'green' ? styles.green : null,
-            line2Tone === 'red' ? styles.red : null,
-            line2Tone === 'muted' ? styles.muted : null,
-            { fontFamily: fallbackFonts.bodyMedium },
+            {
+              color:
+                line2Tone === 'green'
+                  ? theme.colors.success
+                  : line2Tone === 'red'
+                    ? theme.colors.danger
+                    : theme.colors.textMuted,
+              fontFamily: fallbackFonts.bodyMedium,
+            },
           ]}
         >
           {line2}
         </Text>
-        {showAlertIcon ? <Icon name="alert" size={13} color="#FF6F69" /> : null}
+        {showAlertIcon ? <Icon name="alert" size={13} color={theme.colors.danger} /> : null}
       </View>
     </LinearGradient>
   );
@@ -47,26 +54,24 @@ export const StatCardSmall: React.FC<StatCardSmallProps> = ({
 const styles = StyleSheet.create({
   card: {
     borderRadius: 18,
+    borderWidth: 1,
     flex: 1,
     minHeight: 110,
     paddingHorizontal: 20,
     paddingVertical: 20,
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.2,
     shadowRadius: 12,
     elevation: 6,
   },
   title: {
-    color: '#7A90A3',
     fontSize: 13,
     letterSpacing: 0.8,
     marginBottom: 8,
   },
   line1: {
-    color: '#EEF4EF',
     fontSize: 16,
-    fontWeight:"bold",
+    fontWeight: 'bold',
     marginBottom: 6,
   },
   line2Row: {
@@ -76,15 +81,6 @@ const styles = StyleSheet.create({
   },
   line2: {
     fontSize: 15,
-    fontWeight:'bold'
-  },
-  green: {
-    color: '#22D663',
-  },
-  red: {
-    color: '#FF6F69',
-  },
-  muted: {
-    color: '#6E8097',
+    fontWeight: 'bold',
   },
 });

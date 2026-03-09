@@ -1,6 +1,7 @@
 import React, { memo } from 'react';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { StyleSheet, TextInput, View } from 'react-native';
+import { useAppTheme } from '../../theme';
 
 interface SearchInputProps {
   value: string;
@@ -8,15 +9,17 @@ interface SearchInputProps {
 }
 
 const SearchInputComponent: React.FC<SearchInputProps> = ({ value, onChangeText }) => {
+  const theme = useAppTheme();
+
   return (
-    <View style={styles.inputWrap}>
-      <Icon name="magnify" size={20} color="#708D7D" />
+    <View style={[styles.inputWrap, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.inputBorder }]}> 
+      <Icon name="magnify" size={20} color={theme.colors.textMuted} />
       <TextInput
         value={value}
         onChangeText={onChangeText}
         placeholder="Buscar parlamentar ou estado..."
-        placeholderTextColor="#708D7D"
-        style={styles.input}
+        placeholderTextColor={theme.colors.textMuted}
+        style={[styles.input, { color: theme.colors.text }]}
       />
     </View>
   );
@@ -28,9 +31,7 @@ const styles = StyleSheet.create({
   inputWrap: {
     minHeight: 50,
     borderRadius: 14,
-    backgroundColor: '#173729',
     borderWidth: 1,
-    borderColor: 'rgba(143, 233, 168, 0.12)',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
@@ -38,7 +39,6 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     marginLeft: 8,
-    color: '#DFF0E6',
     fontSize: 16,
     lineHeight: 20,
     includeFontPadding: false,

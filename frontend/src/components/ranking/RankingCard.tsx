@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { Image, StyleSheet, View } from 'react-native';
-import { designSystem } from '../../theme';
+import { useAppTheme } from '../../theme';
 import { AppText } from '../ui';
 import { ProgressBar } from './ProgressBar';
 import { RankBadge } from './RankBadge';
@@ -24,8 +24,10 @@ const RankingCardComponent: React.FC<RankingCardProps> = ({
   limitLabel,
   imageUri,
 }) => {
+  const theme = useAppTheme();
+
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, shadowColor: theme.shadow.card.shadowColor }]}> 
       <View style={styles.topRow}>
         <View style={styles.leftCluster}>
           <RankBadge rank={rank} />
@@ -33,8 +35,8 @@ const RankingCardComponent: React.FC<RankingCardProps> = ({
             {imageUri ? (
               <Image source={{ uri: imageUri }} style={styles.avatar} />
             ) : (
-              <View style={[styles.avatar, styles.avatarFallback]}>
-                <AppText weight="bold" style={styles.avatarFallbackText}>
+              <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: theme.colors.surfaceStrong }]}>
+                <AppText weight="bold" style={[styles.avatarFallbackText, { color: theme.colors.text }]}> 
                   {name.slice(0, 1).toUpperCase()}
                 </AppText>
               </View>
@@ -43,15 +45,15 @@ const RankingCardComponent: React.FC<RankingCardProps> = ({
         </View>
 
         <View style={styles.center}>
-          <AppText weight="bold" numberOfLines={1} style={styles.name}>
+          <AppText weight="bold" numberOfLines={1} style={[styles.name, { color: theme.colors.text }]}> 
             {name}
           </AppText>
-          <AppText weight="medium" numberOfLines={1} style={styles.subtitle}>
+          <AppText weight="medium" numberOfLines={1} style={[styles.subtitle, { color: theme.colors.textSecondary }]}> 
             {subtitle}
           </AppText>
         </View>
 
-        <AppText weight="bold" numberOfLines={1} style={styles.amount}>
+        <AppText weight="bold" numberOfLines={1} style={[styles.amount, { color: theme.colors.primary }]}> 
           {amountLabel}
         </AppText>
       </View>
@@ -59,8 +61,8 @@ const RankingCardComponent: React.FC<RankingCardProps> = ({
       <View style={styles.progressWrap}>
         <ProgressBar progress={progress} />
         <View style={styles.progressLabels}>
-          <AppText style={styles.progressHint}>Cota Parlamentar</AppText>
-          <AppText style={styles.progressHint}>Limite: {limitLabel}</AppText>
+          <AppText style={[styles.progressHint, { color: theme.colors.textMuted }]}>Cota Parlamentar</AppText>
+          <AppText style={[styles.progressHint, { color: theme.colors.textMuted }]}>Limite: {limitLabel}</AppText>
         </View>
       </View>
     </View>
@@ -71,15 +73,16 @@ export const RankingCard = memo(RankingCardComponent);
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#112C20',
-    borderRadius: designSystem.radius.card,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: 'rgba(143, 233, 168, 0.14)',
     paddingHorizontal: 12,
     paddingTop: 10,
     paddingBottom: 12,
     marginBottom: 10,
-    ...designSystem.shadow.card,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.14,
+    shadowRadius: 16,
+    elevation: 3,
   },
   topRow: {
     flexDirection: 'row',
@@ -93,7 +96,7 @@ const styles = StyleSheet.create({
   },
   avatarWrap: {
     marginTop: -10,
-    zIndex:-100
+    zIndex: -100,
   },
   avatar: {
     width: 44,
@@ -101,35 +104,30 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   avatarFallback: {
-    backgroundColor: '#2E4B3E',
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarFallbackText: {
-    color: '#E8F5EC',
     fontSize: 19,
     lineHeight: 24,
   },
   center: {
-    marginTop:14,
-    marginLeft:-20,
+    marginTop: 14,
+    marginLeft: -20,
     flex: 1,
     paddingRight: 8,
   },
   name: {
-    color: '#E7F4EC',
     fontSize: 20,
     lineHeight: 25,
     fontWeight: '700',
   },
   subtitle: {
-    color: '#8CA69A',
     fontSize: 13,
     lineHeight: 16,
     marginTop: 1,
   },
   amount: {
-    color: designSystem.colors.green,
     fontSize: 18,
     lineHeight: 23,
     minWidth: 90,
@@ -144,7 +142,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   progressHint: {
-    color: '#6A8577',
     fontSize: 10,
     lineHeight: 13,
   },

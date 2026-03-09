@@ -11,6 +11,7 @@ const SIX_HOURS_SECONDS = 60 * 60 * 6;
 const AGGREGATE_CACHE_TTL_SECONDS = env.AGGREGATES_CACHE_TTL_SECONDS;
 const MONTH_SYNC_STALE_MS = 15 * 60 * 1000;
 const SYNC_CONCURRENCY = 4;
+const MIN_DEPUTY_CATALOG_SIZE = 500;
 
 type ListInput = {
   pagina: number;
@@ -108,6 +109,22 @@ export class DeputadosService {
     await Promise.all(runners);
   }
 
+  private async ensureDeputyCatalogLoaded() {
+    const currentCount = await this.repository.countDeputies();
+    if (currentCount >= MIN_DEPUTY_CATALOG_SIZE) {
+      return currentCount;
+    }
+    try {
+      await this.syncAllDeputies();
+      return this.repository.countDeputies();
+    } catch (error) {
+      if (currentCount > 0) {
+        return currentCount;
+      }
+      throw error;
+    }
+  }
+
   async syncAllDeputies() {
     let page = 1;
     const items = 100;
@@ -202,12 +219,24 @@ export class DeputadosService {
     }
 
     return this.withInflightDedup(cacheKey, async () => {
+      await this.ensureDeputyCatalogLoaded();
       const salary = await this.salarioService.getCurrentSalary();
-      let deputies = await this.repository.listDeputiesWithMonthTotal(ano, mes, filters);
-      if (deputies.length === 0) {
-        await this.syncAllDeputies();
-        deputies = await this.repository.listDeputiesWithMonthTotal(ano, mes, filters);
-      }
+      const { deputies: baseDeputies } = await this.repository.listAll(filters ?? {});
+      const monthlyTotals = await this.repository.getMonthTotalsByDeputyIds(
+        ano,
+        mes,
+        baseDeputies.map((item) => item.id),
+      );
+      const deputies = baseDeputies.map((item) => {
+        const monthly = monthlyTotals.get(item.id);
+        return {
+          ...item,
+          totalMes: monthly?.totalMes ?? 0,
+          totalCents: monthly?.totalCents ?? 0,
+          expensesCount: monthly?.expensesCount ?? 0,
+          lastSyncedAt: monthly?.lastSyncedAt ?? null,
+        };
+      });
       const syncMeta = await this.repository.getMonthSyncMeta(ano, mes);
       const isStale = !syncMeta.lastSyncedAt
         || Date.now() - syncMeta.lastSyncedAt.getTime() > MONTH_SYNC_STALE_MS;
@@ -393,12 +422,8 @@ export class DeputadosService {
 
     const startedAt = Date.now();
     const job = (async () => {
-      const deputyIds = await this.repository.listAllDeputyIds();
-      if (!deputyIds.length) {
-        await this.syncAllDeputies();
-      }
-
-      const finalDeputyIds = deputyIds.length ? deputyIds : await this.repository.listAllDeputyIds();
+      await this.ensureDeputyCatalogLoaded();
+      const finalDeputyIds = await this.repository.listAllDeputyIds();
       const monthSyncMeta = await this.repository.getMonthSyncMeta(ano, mes);
       const firstAggregates = await this.repository.getExpenseAggregatesByMonth(ano, mes);
       const aggregateMap = new Map<number, { totalCents: bigint; expensesCount: number }>(

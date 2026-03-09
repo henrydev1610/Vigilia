@@ -1,7 +1,7 @@
 import React, { memo } from 'react';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { StyleSheet, View } from 'react-native';
-import { designSystem } from '../../theme';
+import { useAppTheme } from '../../theme';
 import { AppText } from '../ui';
 
 interface RankingFooterSummaryProps {
@@ -13,18 +13,20 @@ const RankingFooterSummaryComponent: React.FC<RankingFooterSummaryProps> = ({
   totalLabel,
   bottomOffset,
 }) => {
+  const theme = useAppTheme();
+
   return (
     <View style={[styles.wrap, { bottom: bottomOffset }]}>
-      <View style={styles.card}>
+      <View style={[styles.card, { backgroundColor: theme.colors.primary }]}> 
         <View style={styles.left}>
-          <View style={styles.iconWrap}>
-            <Icon name="chart-box-outline" size={20} color="#0D1F14" />
+          <View style={[styles.iconWrap, { backgroundColor: theme.colors.overlay }]}> 
+            <Icon name="chart-box-outline" size={20} color={theme.colors.textInverse} />
           </View>
           <View>
-            <AppText weight="bold" style={styles.caption}>
+            <AppText weight="bold" style={[styles.caption, { color: theme.colors.textInverse }]}> 
               TOTAL MONITORADO
             </AppText>
-            <AppText weight="bold" style={styles.total}>
+            <AppText weight="bold" style={[styles.total, { color: theme.colors.textInverse }]}> 
               {totalLabel}
             </AppText>
           </View>
@@ -39,14 +41,13 @@ export const RankingFooterSummary = memo(RankingFooterSummaryComponent);
 const styles = StyleSheet.create({
   wrap: {
     position: 'absolute',
-    marginBottom:-111,
+    marginBottom: -111,
     left: 10,
     right: 10,
   },
   card: {
     minHeight: 72,
     borderRadius: 14,
-    backgroundColor: designSystem.colors.green,
     paddingHorizontal: 14,
     flexDirection: 'row',
     alignItems: 'center',
@@ -63,15 +64,12 @@ const styles = StyleSheet.create({
     borderRadius: 9,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(7, 27, 17, 0.22)',
   },
   caption: {
-    color: '#123425',
     fontSize: 10,
     lineHeight: 13,
   },
   total: {
-    color: '#0A2417',
     fontSize: 34,
     lineHeight: 41,
   },

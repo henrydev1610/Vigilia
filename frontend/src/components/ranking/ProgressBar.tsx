@@ -1,17 +1,18 @@
 import React, { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { designSystem } from '../../theme';
+import { useAppTheme } from '../../theme';
 
 interface ProgressBarProps {
   progress: number;
 }
 
 const ProgressBarComponent: React.FC<ProgressBarProps> = ({ progress }) => {
+  const theme = useAppTheme();
   const clamped = Math.max(0, Math.min(progress, 1));
 
   return (
-    <View style={styles.track}>
-      <View style={[styles.fill, { width: `${clamped * 100}%` }]} />
+    <View style={[styles.track, { backgroundColor: theme.colors.surfaceStrong }]}> 
+      <View style={[styles.fill, { backgroundColor: theme.colors.primary, width: `${clamped * 100}%` }]} />
     </View>
   );
 };
@@ -23,12 +24,10 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 8,
     borderRadius: 999,
-    backgroundColor: '#2E4A3E',
     overflow: 'hidden',
   },
   fill: {
     height: '100%',
     borderRadius: 999,
-    backgroundColor: designSystem.colors.green,
   },
 });

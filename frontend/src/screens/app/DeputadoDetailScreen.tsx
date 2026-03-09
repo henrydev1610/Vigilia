@@ -4,11 +4,12 @@ import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useDeputadoDetailScreen } from '../../hooks';
-import { DeputadosStackParamList } from '../../navigation/types';
+import { AppStackParamList } from '../../navigation/types';
 import { toAbsoluteUrl } from '../../services/api';
 import { formatCurrencyBRL } from '../../utils/format';
 import { useAppTheme } from '../../theme';
 import { EmptyState, GreenGridBackground, LoadingState, Skeleton, Snackbar } from '../../components/ui';
+import { AppMenu, APP_MENU_BASE_HEIGHT, APP_MENU_MIN_BOTTOM_GAP } from '../../components/AppMenu';
 import {
   DetailHeader,
   ExpenseCard,
@@ -19,8 +20,8 @@ import {
   SpendingChart,
 } from '../../components/parliament-detail';
 
-type DetailRoute = RouteProp<DeputadosStackParamList, 'DeputadoDetail'>;
-type DetailNav = StackNavigationProp<DeputadosStackParamList, 'DeputadoDetail'>;
+type DetailRoute = RouteProp<AppStackParamList, 'DeputadoDetail'>;
+type DetailNav = StackNavigationProp<AppStackParamList, 'DeputadoDetail'>;
 
 const MONTHS_FULL = ['JANEIRO', 'FEVEREIRO', 'MARCO', 'ABRIL', 'MAIO', 'JUNHO', 'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'];
 const MONTHS_SHORT = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
@@ -52,7 +53,7 @@ export const DeputadoDetailScreen: React.FC = () => {
   const navigation = useNavigation<DetailNav>();
   const insets = useSafeAreaInsets();
   const theme = useAppTheme();
-  const { deputyId } = route.params;
+  const { deputyId, ano: initialAno, mes: initialMes } = route.params;
 
   const {
     deputy,
@@ -71,13 +72,21 @@ export const DeputadoDetailScreen: React.FC = () => {
     error,
     applyFilters,
     onLoadMore,
-  } = useDeputadoDetailScreen(deputyId);
+  } = useDeputadoDetailScreen(deputyId, { ano: initialAno, mes: initialMes });
+
+  React.useEffect(() => {
+    if (!__DEV__) return;
+    // eslint-disable-next-line no-console
+    console.log('[detail] route.period', { deputyId, initialAno, initialMes });
+  }, [deputyId, initialAno, initialMes]);
 
   const [isSheetVisible, setIsSheetVisible] = useState(false);
   const [isPeriodPickerVisible, setIsPeriodPickerVisible] = useState(false);
 
   const selectedYear = Math.max(2000, Number(ano) || new Date().getFullYear());
   const selectedMonth = Math.min(12, Math.max(1, Number(mes) || new Date().getMonth() + 1));
+  const menuBottomInset = Math.max(APP_MENU_MIN_BOTTOM_GAP, insets.bottom);
+  const menuStackHeight = APP_MENU_BASE_HEIGHT + menuBottomInset;
   const totalLabel = `TOTAL ${MONTHS_FULL[selectedMonth - 1]}`;
   const periodLabel = `${MONTHS_SHORT[selectedMonth - 1]}/${selectedYear}`;
 
@@ -164,10 +173,10 @@ export const DeputadoDetailScreen: React.FC = () => {
     <View>
       <ParliamentProfileHeader
         avatarUrl={deputy?.fotoUrl ?? null}
-        mandateLabel={deputy?.idLegislatura ? `Legislatura ${deputy.idLegislatura}` : 'Mandato vigente'}
+        mandateLabel={(deputy as any)?.idLegislatura ? `Legislatura ${(deputy as any).idLegislatura}` : 'Mandato vigente'}
         name={deputy?.nome ?? route.params.deputyName ?? 'Deputado'}
         party={deputy?.partido ?? '--'}
-        statusLabel={deputy?.situacao ?? 'Situacao nao informada'}
+        statusLabel={(deputy as any)?.situacao ?? 'Situacao nao informada'}
         uf={deputy?.uf ?? '--'}
       />
 
@@ -190,8 +199,8 @@ export const DeputadoDetailScreen: React.FC = () => {
       )}
 
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Ultimas Despesas</Text>
-        <Text onPress={handleViewAll} style={styles.sectionLink}>
+        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Ultimas Despesas</Text>
+        <Text onPress={handleViewAll} style={[styles.sectionLink, { color: theme.colors.primary }]}>
           Ver todas
         </Text>
       </View>
@@ -200,10 +209,10 @@ export const DeputadoDetailScreen: React.FC = () => {
     chartLoading,
     dailyChartPoints,
     deputy?.fotoUrl,
-    deputy?.idLegislatura,
+    (deputy as any)?.idLegislatura,
     deputy?.nome,
     deputy?.partido,
-    deputy?.situacao,
+    (deputy as any)?.situacao,
     deputy?.uf,
     error,
     handleViewAll,
@@ -226,7 +235,7 @@ export const DeputadoDetailScreen: React.FC = () => {
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: theme.colors.background }]} edges={['top']}>
       <GreenGridBackground />
       <View style={styles.container}>
         <DetailHeader onBack={() => navigation.goBack()} onShare={handleShareScreen} />
@@ -236,7 +245,7 @@ export const DeputadoDetailScreen: React.FC = () => {
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => {
             const readableType = expenseTypeMap.get(item.tipo) ?? item.tipo;
-            const invoiceNumber = item.numeroDocumento?.trim() || item.id.slice(0, 6);
+            const invoiceNumber = ((item as any).numeroDocumento?.trim() as string | undefined) || item.id.slice(0, 6);
             return (
               <ExpenseCard
                 dateLabel={formatExpenseDate(item.data)}
@@ -250,10 +259,10 @@ export const DeputadoDetailScreen: React.FC = () => {
           }}
           onEndReachedThreshold={0.4}
           onEndReached={onLoadMore}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void applyFilters()} tintColor="#1DE26D" />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void applyFilters()} tintColor={theme.colors.primary} />}
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={listHeader}
-          ListFooterComponent={<View style={{ height: insets.bottom + 96 }} />}
+          ListFooterComponent={<View style={{ height: menuStackHeight + 24 }} />}
           ListEmptyComponent={
             <EmptyState
               title="Sem despesas recentes"
@@ -269,6 +278,7 @@ export const DeputadoDetailScreen: React.FC = () => {
           removeClippedSubviews
         />
       </View>
+      <AppMenu activeTab="Explorar" />
 
       <ExpenseDetailBottomSheet
         visible={isSheetVisible && Boolean(selectedExpense)}
@@ -294,7 +304,6 @@ export const DeputadoDetailScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   safe: {
-    backgroundColor: '#06160F',
     flex: 1,
   },
   container: {
@@ -323,13 +332,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
   },
   sectionTitle: {
-    color: '#E6F4EB',
     fontSize: 26,
     fontWeight: '800',
     letterSpacing: -0.35,
   },
   sectionLink: {
-    color: '#1EE06C',
     fontSize: 14,
     fontWeight: '700',
     marginTop: 3,

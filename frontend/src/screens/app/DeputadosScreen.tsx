@@ -14,7 +14,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { AppStackParamList } from '../../navigation/types';
 import { useDeputadosScreen } from '../../hooks';
 import { toAbsoluteUrl } from '../../services/api';
-import { designSystem } from '../../theme';
+import { useAppTheme } from '../../theme';
 import { DeputyCard, DropdownFilter, DropdownOption, FilterChip, SearchInput } from '../../components/deputados';
 import { HeaderProfileButton } from '../../components/header';
 import { AppText, EmptyState, ErrorBanner, LoadingState, ScreenBackground, Snackbar } from '../../components/ui';
@@ -22,7 +22,27 @@ import { AppText, EmptyState, ErrorBanner, LoadingState, ScreenBackground, Snack
 type Nav = StackNavigationProp<AppStackParamList, 'Tabs'>;
 
 type SortType = 'highest_spending' | 'lowest_spending' | 'alphabetical' | 'highest_usage';
-type ActiveDropdown = 'uf' | 'partido' | 'sort' | null;
+type ActiveDropdown = 'mes' | 'ano' | 'uf' | 'partido' | 'sort' | null;
+
+const MONTH_OPTIONS: DropdownOption[] = [
+  { label: 'Janeiro', value: '1' },
+  { label: 'Fevereiro', value: '2' },
+  { label: 'Março', value: '3' },
+  { label: 'Abril', value: '4' },
+  { label: 'Maio', value: '5' },
+  { label: 'Junho', value: '6' },
+  { label: 'Julho', value: '7' },
+  { label: 'Agosto', value: '8' },
+  { label: 'Setembro', value: '9' },
+  { label: 'Outubro', value: '10' },
+  { label: 'Novembro', value: '11' },
+  { label: 'Dezembro', value: '12' },
+];
+
+const MONTH_LABEL_MAP = MONTH_OPTIONS.reduce<Record<number, string>>((acc, item) => {
+  acc[Number(item.value)] = item.label;
+  return acc;
+}, {});
 
 const SORT_OPTIONS: DropdownOption[] = [
   { label: 'Maior gasto', value: 'highest_spending' },
@@ -39,6 +59,7 @@ const SORT_LABEL_MAP: Record<SortType, string> = {
 };
 
 export const DeputadosScreen: React.FC = () => {
+  const theme = useAppTheme();
   const navigation = useNavigation<Nav>();
   const {
     items,
@@ -47,7 +68,9 @@ export const DeputadosScreen: React.FC = () => {
     loadingMore,
     syncing,
     error,
+    errorType,
     message,
+    messageTone,
     filters,
     setFilters,
     onRefresh,
@@ -56,6 +79,7 @@ export const DeputadosScreen: React.FC = () => {
     loadedDeputyTotals,
     partidos,
     ufs,
+    availableYears,
   } = useDeputadosScreen();
 
   const [activeDropdown, setActiveDropdown] = useState<ActiveDropdown>(null);
@@ -80,6 +104,11 @@ export const DeputadosScreen: React.FC = () => {
   const partidoOptions = useMemo<DropdownOption[]>(() => {
     return [{ label: 'Todos', value: '' }, ...partidos.map((partido) => ({ label: partido, value: partido }))];
   }, [partidos]);
+  const anoOptions = useMemo<DropdownOption[]>(() => {
+    return availableYears.map((year) => ({ label: String(year), value: String(year) }));
+  }, [availableYears]);
+
+  const selectedMonthLabel = useMemo(() => MONTH_LABEL_MAP[filters.mes] ?? 'Mês inválido', [filters.mes]);
 
   const handleSelectUf = useCallback((value: string) => {
     applyAnimatedFilterUpdate(() => {
@@ -102,6 +131,23 @@ export const DeputadosScreen: React.FC = () => {
     });
     setActiveDropdown(null);
   }, [applyAnimatedFilterUpdate, setFilters]);
+  const handleSelectMonth = useCallback((value: string) => {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed < 1 || parsed > 12) return;
+    applyAnimatedFilterUpdate(() => {
+      setFilters((prev) => ({ ...prev, mes: parsed }));
+    });
+    setActiveDropdown(null);
+  }, [applyAnimatedFilterUpdate, setFilters]);
+
+  const handleSelectYear = useCallback((value: string) => {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) return;
+    applyAnimatedFilterUpdate(() => {
+      setFilters((prev) => ({ ...prev, ano: parsed }));
+    });
+    setActiveDropdown(null);
+  }, [applyAnimatedFilterUpdate, setFilters]);
 
   const renderItem = useCallback(
     ({ item }: { item: (typeof items)[number] }) => {
@@ -116,21 +162,37 @@ export const DeputadosScreen: React.FC = () => {
           uf={item.uf}
           imageUri={toAbsoluteUrl(item.fotoUrl) ?? undefined}
           monthlySpent={monthlyTotal}
-          onPress={(deputyId, deputyName) => navigation.navigate('DeputadoDetail', { deputyId, deputyName })}
+          onPress={(deputyId, deputyName) => {
+            if (__DEV__) {
+              // eslint-disable-next-line no-console
+              console.log('[explorar->detail] period', { deputyId, ano: filters.ano, mes: filters.mes });
+            }
+            navigation.navigate('DeputadoDetail', {
+              deputyId,
+              deputyName,
+              ano: filters.ano,
+              mes: filters.mes,
+            });
+          }}
         />
       );
     },
-    [deputyTotalsByMonth, loadedDeputyTotals, navigation],
+    [deputyTotalsByMonth, filters.ano, filters.mes, loadedDeputyTotals, navigation],
   );
+  const showBlockingError = Boolean(error && errorType === 'network' && !loading && items.length === 0);
 
   const header = useMemo(
     () => (
       <View style={styles.headerWrap}>
         <View style={styles.titleRow}>
-          <AppText weight="bold" style={styles.title}>
+          <AppText weight="bold" style={[styles.title, { color: theme.colors.text }]}>
             Explorar
           </AppText>
-          <HeaderProfileButton iconSize={20} iconColor={designSystem.colors.iconAccent} containerStyle={styles.profileCircle} />
+          <HeaderProfileButton
+            iconSize={20}
+            iconColor={theme.colors.iconAccent}
+            containerStyle={[styles.profileCircle, { backgroundColor: theme.colors.iconCircle }]}
+          />
         </View>
 
         <SearchInput
@@ -140,6 +202,16 @@ export const DeputadosScreen: React.FC = () => {
         />
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
+          <FilterChip
+            label={`Mês: ${selectedMonthLabel}`}
+            selected
+            onPress={() => setActiveDropdown('mes')}
+          />
+          <FilterChip
+            label={`Ano: ${filters.ano}`}
+            selected
+            onPress={() => setActiveDropdown('ano')}
+          />
           <FilterChip
             label={`UF: ${filters.uf || 'Todos'}`}
             selected={Boolean(filters.uf)}
@@ -157,12 +229,12 @@ export const DeputadosScreen: React.FC = () => {
           />
         </ScrollView>
 
-        {error ? <ErrorBanner message={error} onAction={onRefresh} /> : null}
-        {!error && message ? <Snackbar message={message} tone="success" /> : null}
+        {showBlockingError ? <ErrorBanner message={error ?? ''} onAction={onRefresh} /> : null}
+        {!showBlockingError && message ? <Snackbar message={message} tone={messageTone} /> : null}
         {syncing ? <Snackbar message="Sincronizando base..." tone="warning" /> : null}
       </View>
     ),
-    [error, filters.partido, filters.search, filters.sort, filters.uf, message, onRefresh, setFilters, syncing],
+    [error, filters.ano, filters.mes, filters.partido, filters.search, filters.sort, filters.uf, message, messageTone, onRefresh, selectedMonthLabel, setFilters, showBlockingError, syncing],
   );
 
   return (
@@ -175,7 +247,7 @@ export const DeputadosScreen: React.FC = () => {
         maxToRenderPerBatch={8}
         updateCellsBatchingPeriod={40}
         removeClippedSubviews={Platform.OS === 'android'}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={designSystem.colors.green} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.primary} />}
         contentContainerStyle={styles.content}
         onEndReachedThreshold={0.35}
         onEndReached={onLoadMore}
@@ -193,6 +265,24 @@ export const DeputadosScreen: React.FC = () => {
         }
         ListFooterComponent={loadingMore ? <LoadingState label="Carregando mais..." /> : <View style={styles.footerSpace} />}
         renderItem={renderItem}
+      />
+
+      <DropdownFilter
+        visible={activeDropdown === 'mes'}
+        title="Selecionar mês"
+        options={MONTH_OPTIONS}
+        selectedValue={String(filters.mes)}
+        onSelect={handleSelectMonth}
+        onClose={() => setActiveDropdown(null)}
+      />
+
+      <DropdownFilter
+        visible={activeDropdown === 'ano'}
+        title="Selecionar ano"
+        options={anoOptions}
+        selectedValue={String(filters.ano)}
+        onSelect={handleSelectYear}
+        onClose={() => setActiveDropdown(null)}
       />
 
       <DropdownFilter
@@ -227,13 +317,13 @@ export const DeputadosScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   content: {
-    paddingHorizontal: designSystem.spacing.sm,
+    paddingHorizontal: 12,
     paddingBottom: 24,
   },
   headerWrap: {
-    paddingTop: designSystem.spacing.xs,
-    paddingBottom: designSystem.spacing.sm,
-    gap: designSystem.spacing.sm,
+    paddingTop: 8,
+    paddingBottom: 12,
+    gap: 12,
   },
   titleRow: {
     flexDirection: 'row',
@@ -241,9 +331,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    color: designSystem.colors.textPrimary,
-    fontSize: designSystem.typography.sizes.title,
-    lineHeight: designSystem.typography.lineHeights.title,
+    fontSize: 42,
+    lineHeight: 52,
   },
   profileCircle: {
     width: 38,
@@ -251,7 +340,6 @@ const styles = StyleSheet.create({
     borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: designSystem.colors.iconCircle,
   },
   chipsRow: {
     alignItems: 'center',

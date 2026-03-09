@@ -18,6 +18,10 @@ type DeputyMonthTotalInput = {
 };
 
 export class DeputadosRepository {
+  countDeputies() {
+    return prisma.deputy.count();
+  }
+
   async upsertDeputy(data: {
     id: number;
     nome: string;
@@ -189,6 +193,38 @@ export class DeputadosRepository {
       totalCents: Number(row.totalCents ?? 0),
       expensesCount: Number(row.expensesCount ?? 0),
     }));
+  }
+
+  async getMonthTotalsByDeputyIds(ano: number, mes: number, deputyIds: number[]) {
+    if (!deputyIds.length) {
+      return new Map<number, { totalCents: number; totalMes: number; expensesCount: number; lastSyncedAt: Date | null }>();
+    }
+
+    const rows = await prisma.deputyMonthTotal.findMany({
+      where: {
+        ano,
+        mes,
+        deputyId: { in: deputyIds },
+      },
+      select: {
+        deputyId: true,
+        totalCents: true,
+        expensesCount: true,
+        lastSyncedAt: true,
+      },
+    });
+
+    return new Map(
+      rows.map((row) => ([
+        row.deputyId,
+        {
+          totalCents: Number(row.totalCents ?? 0),
+          totalMes: Number(row.totalCents ?? 0) / 100,
+          expensesCount: Number(row.expensesCount ?? 0),
+          lastSyncedAt: row.lastSyncedAt ?? null,
+        },
+      ])),
+    );
   }
 
   async getTotalByMonth(ano: number, mes: number) {

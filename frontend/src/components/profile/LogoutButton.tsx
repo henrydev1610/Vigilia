@@ -1,6 +1,7 @@
 import React, { memo } from 'react';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Pressable, StyleSheet, View } from 'react-native';
+import { useAppTheme } from '../../theme';
 import { AppText } from '../ui';
 
 interface LogoutButtonProps {
@@ -8,13 +9,15 @@ interface LogoutButtonProps {
 }
 
 const LogoutButtonComponent: React.FC<LogoutButtonProps> = ({ onPress }) => {
+  const theme = useAppTheme();
+
   return (
-    <Pressable onPress={onPress} style={styles.button}>
+    <Pressable onPress={onPress} style={[styles.button, { backgroundColor: theme.colors.dangerSoft, borderColor: theme.colors.danger }]}> 
       <View style={styles.iconWrap}>
-        <Icon name="logout" size={18} color="#FFD5D5" />
+        <Icon name="logout" size={18} color={theme.colors.danger} />
       </View>
-      <AppText weight="bold" style={styles.text}>
-        Encerrar Sessão
+      <AppText weight="bold" style={[styles.text, { color: theme.colors.danger }]}> 
+        Encerrar Sessao
       </AppText>
     </Pressable>
   );
@@ -27,9 +30,7 @@ const styles = StyleSheet.create({
     marginTop: 18,
     minHeight: 52,
     borderRadius: 14,
-    backgroundColor: '#7E1C24',
     borderWidth: 1,
-    borderColor: 'rgba(255, 163, 163, 0.3)',
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
@@ -40,7 +41,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   text: {
-    color: '#FFE6E6',
     fontSize: 16,
     lineHeight: 20,
   },

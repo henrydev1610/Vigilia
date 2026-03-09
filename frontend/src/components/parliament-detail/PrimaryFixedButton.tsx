@@ -1,6 +1,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
+import { useAppTheme } from '../../theme';
 
 interface PrimaryFixedButtonProps {
   onPress: () => void;
@@ -11,6 +12,8 @@ export const PrimaryFixedButton: React.FC<PrimaryFixedButtonProps> = ({
   onPress,
   disabled = false,
 }) => {
+  const theme = useAppTheme();
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -18,12 +21,13 @@ export const PrimaryFixedButton: React.FC<PrimaryFixedButtonProps> = ({
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,
+        { backgroundColor: theme.colors.primary, shadowColor: theme.shadow.card.shadowColor },
         disabled ? styles.disabled : null,
         pressed && !disabled ? styles.pressed : null,
       ]}
     >
-      <Icon name="file-document-outline" size={18} color="#052313" />
-      <Text style={styles.label}>Ver Nota Fiscal Selecionada</Text>
+      <Icon name="file-document-outline" size={18} color={theme.colors.textInverse} />
+      <Text style={[styles.label, { color: theme.colors.textInverse }]}>Ver Nota Fiscal Selecionada</Text>
     </Pressable>
   );
 };
@@ -31,19 +35,16 @@ export const PrimaryFixedButton: React.FC<PrimaryFixedButtonProps> = ({
 const styles = StyleSheet.create({
   button: {
     alignItems: 'center',
-    backgroundColor: '#1EE16C',
     borderRadius: 14,
     flexDirection: 'row',
     gap: 8,
     justifyContent: 'center',
     minHeight: 56,
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.16,
     shadowRadius: 14,
   },
   label: {
-    color: '#062415',
     fontSize: 15,
     fontWeight: '800',
     letterSpacing: -0.1,

@@ -1,4 +1,6 @@
-﻿export type AuthStackParamList = {
+import { NavigatorScreenParams } from '@react-navigation/native';
+
+export type AuthStackParamList = {
   Login: undefined;
   Register: undefined;
 };
@@ -12,8 +14,8 @@ export type AppTabParamList = {
 };
 
 export type AppStackParamList = {
-  Tabs: undefined;
-  DeputadoDetail: { deputyId: number; deputyName?: string };
+  Tabs: NavigatorScreenParams<AppTabParamList> | undefined;
+  DeputadoDetail: { deputyId: number; deputyName?: string; ano?: number; mes?: number };
   Profile: undefined;
 };
 
@@ -21,4 +23,3 @@ export type RootStackParamList = {
   Auth: undefined;
   App: undefined;
 };
-

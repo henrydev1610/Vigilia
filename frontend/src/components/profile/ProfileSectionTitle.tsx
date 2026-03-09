@@ -1,5 +1,6 @@
 import React, { memo } from 'react';
 import { StyleSheet } from 'react-native';
+import { useAppTheme } from '../../theme';
 import { AppText } from '../ui';
 
 interface ProfileSectionTitleProps {
@@ -7,8 +8,9 @@ interface ProfileSectionTitleProps {
 }
 
 const ProfileSectionTitleComponent: React.FC<ProfileSectionTitleProps> = ({ title }) => {
+  const theme = useAppTheme();
   return (
-    <AppText weight="bold" style={styles.title}>
+    <AppText weight="bold" style={[styles.title, { color: theme.colors.textMuted }]}> 
       {title.toUpperCase()}
     </AppText>
   );
@@ -21,7 +23,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 14,
     letterSpacing: 1.1,
-    color: '#6F8F7A',
     marginBottom: 8,
     marginTop: 14,
   },

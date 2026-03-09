@@ -1,9 +1,9 @@
-﻿import React from 'react';
+import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { DashboardStateItem } from '../../types/dashboard';
-import { fallbackFonts } from '../../theme';
+import { fallbackFonts, useAppTheme } from '../../theme';
 import { ProgressBar } from './ProgressBar';
 
 interface StateListCardProps {
@@ -24,27 +24,27 @@ export const StateListCard: React.FC<StateListCardProps> = ({
   title = 'Gastos por Estado',
   icon = 'map',
 }) => {
+  const theme = useAppTheme();
+
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
-        {/* favor não mexer nesse componente */}
         <View style={styles.titleWrap}>
-          <Icon name={icon} size={18} color="#22D663" />
-          <Text style={[styles.sectionTitle, { fontFamily: fallbackFonts.headingBold }]}>{title}</Text>
-          <Text style={[styles.total, { fontFamily: fallbackFonts.bodyMedium }]}>{totalLabel}</Text>
-
+          <Icon name={icon} size={18} color={theme.colors.primary} />
+          <Text style={[styles.sectionTitle, { color: theme.colors.text, fontFamily: fallbackFonts.headingBold }]}>{title}</Text>
+          <Text style={[styles.total, { color: theme.colors.textSecondary, fontFamily: fallbackFonts.bodyMedium }]}>{totalLabel}</Text>
         </View>
       </View>
 
-      <LinearGradient colors={['#142A20', '#101A17']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.card}>
+      <LinearGradient colors={theme.gradients.card} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.card, { borderColor: theme.colors.border }]}> 
         {items.map((item, index) => (
           <View key={item.name} style={styles.row}>
             <View style={styles.topRow}>
               <View style={styles.nameWrap}>
                 <View style={[styles.stateDot, { backgroundColor: stateTone(index) }]} />
-                <Text style={[styles.name, { fontFamily: fallbackFonts.headingBold }]}>{item.name}</Text>
+                <Text style={[styles.name, { color: theme.colors.text, fontFamily: fallbackFonts.headingBold }]}>{item.name}</Text>
               </View>
-              <Text style={[styles.value, { fontFamily: fallbackFonts.headingBold }]}>{item.valueLabel}</Text>
+              <Text style={[styles.value, { color: theme.colors.text, fontFamily: fallbackFonts.headingBold }]}>{item.valueLabel}</Text>
             </View>
             {typeof item.progress === 'number' ? <ProgressBar progress={item.progress} /> : null}
           </View>
@@ -66,30 +66,28 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   titleWrap: {
-    marginTop:20,
-    paddingBottom:10,
+    marginTop: 20,
+    paddingBottom: 10,
     display: 'flex',
     justifyContent: 'space-between',
-    width:"100%",
+    width: '100%',
     alignItems: 'center',
     flexDirection: 'row',
     gap: 8,
   },
   sectionTitle: {
-    marginLeft:-130,
-    color: '#EEF3EF',
+    marginLeft: -130,
     fontSize: 17,
-    fontWeight:'bold'
+    fontWeight: 'bold',
   },
   total: {
-    color: '#87A99A',
     fontSize: 13,
   },
   card: {
     borderRadius: 18,
+    borderWidth: 1,
     paddingHorizontal: 14,
     paddingVertical: 14,
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.18,
     shadowRadius: 12,
@@ -115,11 +113,9 @@ const styles = StyleSheet.create({
     width: 14,
   },
   name: {
-    color: '#E2ECE5',
     fontSize: 14,
   },
   value: {
-    color: '#E2ECE5',
     fontSize: 14,
   },
 });

@@ -1,7 +1,7 @@
 import React, { memo, useEffect, useRef } from 'react';
 import { Animated, FlatList, Modal, Pressable, StyleSheet, View } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
-import { designSystem } from '../../theme';
+import { useAppTheme, useDesignSystem } from '../../theme';
 import { AppText } from '../ui';
 
 export interface DropdownOption {
@@ -26,6 +26,8 @@ const DropdownFilterComponent: React.FC<DropdownFilterProps> = ({
   onSelect,
   onClose,
 }) => {
+  const designSystem = useDesignSystem();
+  const theme = useAppTheme();
   const overlayOpacity = useRef(new Animated.Value(0)).current;
   const panelTranslateY = useRef(new Animated.Value(24)).current;
 
@@ -59,12 +61,22 @@ const DropdownFilterComponent: React.FC<DropdownFilterProps> = ({
   return (
     <Modal transparent visible animationType="none" onRequestClose={onClose} statusBarTranslucent>
       <View style={styles.root}>
-        <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]}>
+        <Animated.View style={[styles.overlay, { backgroundColor: theme.colors.overlay, opacity: overlayOpacity }]}>
           <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         </Animated.View>
 
-        <Animated.View style={[styles.panel, { transform: [{ translateY: panelTranslateY }] }]}>
-          <AppText weight="bold" style={styles.title}>
+        <Animated.View
+          style={[
+            styles.panel,
+            {
+              backgroundColor: designSystem.colors.cardSecondary,
+              borderColor: theme.colors.border,
+              transform: [{ translateY: panelTranslateY }],
+              ...designSystem.shadow.card,
+            },
+          ]}
+        >
+          <AppText weight="bold" style={[styles.title, { color: designSystem.colors.textPrimary }]}>
             {title}
           </AppText>
           <FlatList
@@ -76,10 +88,10 @@ const DropdownFilterComponent: React.FC<DropdownFilterProps> = ({
               const selected = item.value === selectedValue;
               return (
                 <Pressable style={styles.option} onPress={() => onSelect(item.value)}>
-                  <AppText weight={selected ? 'bold' : 'regular'} style={[styles.optionLabel, selected ? styles.optionLabelSelected : null]}>
+                  <AppText weight={selected ? 'bold' : 'regular'} style={[styles.optionLabel, { color: selected ? theme.colors.primaryStrong : designSystem.colors.textPrimary }]}>
                     {item.label}
                   </AppText>
-                  {selected ? <Icon name="check" size={18} color={designSystem.colors.green} /> : null}
+                  {selected ? <Icon name="check" size={18} color={theme.colors.primary} /> : null}
                 </Pressable>
               );
             }}
@@ -99,25 +111,20 @@ const styles = StyleSheet.create({
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.38)',
   },
   panel: {
     maxHeight: '62%',
-    backgroundColor: designSystem.colors.cardSecondary,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(143, 233, 168, 0.16)',
-    paddingHorizontal: designSystem.spacing.md,
-    paddingTop: designSystem.spacing.md,
-    paddingBottom: designSystem.spacing.lg,
-    ...designSystem.shadow.card,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 24,
   },
   title: {
-    color: designSystem.colors.textPrimary,
     fontSize: 16,
     lineHeight: 21,
-    marginBottom: designSystem.spacing.sm,
+    marginBottom: 12,
   },
   option: {
     minHeight: 44,
@@ -128,11 +135,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   optionLabel: {
-    color: designSystem.colors.textPrimary,
-    fontSize: designSystem.typography.sizes.body,
-    lineHeight: designSystem.typography.lineHeights.body,
-  },
-  optionLabelSelected: {
-    color: designSystem.colors.greenLight,
+    fontSize: 14,
+    lineHeight: 18,
   },
 });

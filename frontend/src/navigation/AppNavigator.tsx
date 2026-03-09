@@ -21,7 +21,7 @@ export const AppNavigator: React.FC = () => {
       }}
     >
       <Stack.Screen name="Tabs" component={AppTabs} options={{ headerShown: false }} />
-      <Stack.Screen name="DeputadoDetail" component={DeputadoDetailScreen} options={{ title: 'Detalhes do Deputado' }} />
+      <Stack.Screen name="DeputadoDetail" component={DeputadoDetailScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Profile" component={ProfileScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );

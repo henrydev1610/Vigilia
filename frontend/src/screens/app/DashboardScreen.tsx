@@ -13,8 +13,10 @@ import {
 } from '../../components/dashboard';
 import { useDashboardSummary } from '../../hooks';
 import { AppTabParamList } from '../../navigation/types';
+import { useAppTheme } from '../../theme';
 
 export const DashboardScreen: React.FC = () => {
+  const theme = useAppTheme();
   const navigation = useNavigation<BottomTabNavigationProp<AppTabParamList>>();
   const { ano, mes, dashboard, loading, refreshing, error, refresh } = useDashboardSummary();
 
@@ -37,11 +39,11 @@ export const DashboardScreen: React.FC = () => {
 
   return (
     <Screen padded={false} includeBottomInset={false} contentStyle={styles.screenContent}>
-      <LinearGradient colors={['#060E13', '#040B08', '#050B0E']} style={styles.background} />
+      <LinearGradient colors={theme.gradients.hero} style={styles.background} />
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} tintColor="#22D663" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} tintColor={theme.colors.primary} />}
       >
         <View style={styles.inner}>
           <DashboardHeader alertsCount={dashboard.alertsCount} />

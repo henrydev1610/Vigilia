@@ -1,7 +1,7 @@
 import React, { memo } from 'react';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { StyleSheet, View } from 'react-native';
-import { designSystem } from '../../theme';
+import { useAppTheme } from '../../theme';
 import { AppText } from '../ui';
 
 interface RankingHeaderProps {
@@ -9,16 +9,18 @@ interface RankingHeaderProps {
 }
 
 const RankingHeaderComponent: React.FC<RankingHeaderProps> = ({ updatedLabel }) => {
+  const theme = useAppTheme();
+
   return (
     <View style={styles.row}>
       <View style={styles.textBlock}>
-        <AppText weight="bold" style={styles.title}>
+        <AppText weight="bold" style={[styles.title, { color: theme.colors.text }]}> 
           Rankings de Despesas
         </AppText>
-        <AppText style={styles.subtitle}>{updatedLabel}</AppText>
+        <AppText style={[styles.subtitle, { color: theme.colors.textSecondary }]}>{updatedLabel}</AppText>
       </View>
-      <View style={styles.infoButton}>
-        <Icon name="information-outline" size={18} color="#C8D6CD" />
+      <View style={[styles.infoButton, { backgroundColor: theme.colors.surfaceAlt, borderColor: theme.colors.border }]}> 
+        <Icon name="information-outline" size={18} color={theme.colors.textSecondary} />
       </View>
     </View>
   );
@@ -37,13 +39,11 @@ const styles = StyleSheet.create({
     paddingRight: 10,
   },
   title: {
-    color: '#E7F4EC',
     fontSize: 37,
     lineHeight: 45,
     fontWeight: '700',
   },
   subtitle: {
-    color: '#9BB2A5',
     fontSize: 14,
     lineHeight: 18,
   },
@@ -53,8 +53,6 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#234536',
     borderWidth: 1,
-    borderColor: 'rgba(143, 233, 168, 0.18)',
   },
 });

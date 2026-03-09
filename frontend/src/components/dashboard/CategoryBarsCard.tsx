@@ -1,9 +1,9 @@
-﻿import React from 'react';
+import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { DashboardCategory } from '../../types/dashboard';
-import { fallbackFonts } from '../../theme';
+import { fallbackFonts, useAppTheme } from '../../theme';
 import { ProgressBar } from './ProgressBar';
 
 interface CategoryBarsCardProps {
@@ -12,29 +12,26 @@ interface CategoryBarsCardProps {
 }
 
 export const CategoryBarsCard: React.FC<CategoryBarsCardProps> = ({ items, onPressSeeAll }) => {
-  if (__DEV__) {
-    // eslint-disable-next-line no-console
-    console.log('[dashboard] categoryBars.rendered.length', items.length);
-  }
+  const theme = useAppTheme();
 
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
         <View style={styles.titleWrap}>
-          <Icon name="chart-bar" size={18} color="#22D663" />
-          <Text style={[styles.sectionTitle, { fontFamily: fallbackFonts.headingBold }]}>Gastos por Categoria</Text>
+          <Icon name="chart-bar" size={18} color={theme.colors.primary} />
+          <Text style={[styles.sectionTitle, { color: theme.colors.text, fontFamily: fallbackFonts.headingBold }]}>Gastos por Categoria</Text>
           <Pressable onPress={onPressSeeAll} hitSlop={8}>
-            <Text style={[styles.link, { fontFamily: fallbackFonts.bodyMedium }]}>Ver tudo</Text>
+            <Text style={[styles.link, { color: theme.colors.primary, fontFamily: fallbackFonts.bodyMedium }]}>Ver tudo</Text>
           </Pressable>
         </View>
       </View>
 
-      <LinearGradient colors={['#142A20', '#101A17']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.card}>
+      <LinearGradient colors={theme.gradients.card} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.card, { borderColor: theme.colors.border }]}> 
         {items.map((item) => (
           <View key={item.name} style={styles.row}>
             <View style={styles.labels}>
-              <Text style={[styles.name, { fontFamily: fallbackFonts.bodyMedium }]}>{item.name}</Text>
-              <Text style={[styles.value, { fontFamily: fallbackFonts.headingBold }]}>{item.valueLabel}</Text>
+              <Text style={[styles.name, { color: theme.colors.textSecondary, fontFamily: fallbackFonts.bodyMedium }]}>{item.name}</Text>
+              <Text style={[styles.value, { color: theme.colors.text, fontFamily: fallbackFonts.headingBold }]}>{item.valueLabel}</Text>
             </View>
             <ProgressBar progress={item.progress} />
           </View>
@@ -66,20 +63,18 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     marginLeft: -100,
-    color: '#EEF3EF',
     fontSize: 17,
     fontWeight: 'bold',
   },
   link: {
-    color: '#1DCE59',
     fontSize: 15,
     fontWeight: 'bold',
   },
   card: {
     borderRadius: 18,
+    borderWidth: 1,
     paddingHorizontal: 14,
     paddingVertical: 14,
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.18,
     shadowRadius: 12,
@@ -95,11 +90,9 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   name: {
-    color: '#B8C8BE',
     fontSize: 14,
   },
   value: {
-    color: '#CBD6CF',
     fontSize: 14,
   },
 });

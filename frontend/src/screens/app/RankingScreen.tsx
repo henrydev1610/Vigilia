@@ -11,7 +11,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRanking } from '../../hooks';
 import { toAbsoluteUrl } from '../../services/api';
-import { designSystem } from '../../theme';
+import { useAppTheme } from '../../theme';
 import {
   RankingCard,
   RankingFooterSummary,
@@ -68,6 +68,7 @@ function formatUpdatedLabel(date: Date): string {
 }
 
 export const RankingScreen: React.FC = () => {
+  const theme = useAppTheme();
   const insets = useSafeAreaInsets();
   const {
     mode,
@@ -232,7 +233,7 @@ export const RankingScreen: React.FC = () => {
         maxToRenderPerBatch={8}
         windowSize={9}
         updateCellsBatchingPeriod={40}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={designSystem.colors.green} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} />}
         ListHeaderComponent={
           <View style={styles.headerWrap}>
             <RankingHeader updatedLabel={updatedLabel} />
@@ -264,7 +265,7 @@ export const RankingScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   content: {
-    paddingHorizontal: designSystem.spacing.sm,
+    paddingHorizontal: 12,
   },
   headerWrap: {
     gap: 12,

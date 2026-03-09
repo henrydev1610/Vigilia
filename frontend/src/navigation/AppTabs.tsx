@@ -8,13 +8,14 @@ import { DeputadosScreen } from '../screens/app/DeputadosScreen';
 import { RankingScreen as AppRankingScreen } from '../screens/app/RankingScreen';
 import { ExpensesScreen } from '../screens/ExpensesScreen';
 import { AlertsScreen } from '../screens/AlertsScreen';
-import { designSystem } from '../theme';
+import { useAppTheme } from '../theme';
 
 const Tab = createBottomTabNavigator<AppTabParamList>();
 const TAB_HEIGHT = 64;
 
 export const AppTabs: React.FC = () => {
   const insets = useSafeAreaInsets();
+  const theme = useAppTheme();
   const bottomInset = Math.max(6, insets.bottom);
 
   return (
@@ -25,7 +26,7 @@ export const AppTabs: React.FC = () => {
         lazy: true,
         freezeOnBlur: true,
         tabBarStyle: {
-          backgroundColor: designSystem.colors.bg,
+          backgroundColor: theme.colors.background,
           borderTopWidth: 0,
           height: TAB_HEIGHT + bottomInset,
           paddingTop: 2,
@@ -44,8 +45,8 @@ export const AppTabs: React.FC = () => {
         tabBarIconStyle: {
           marginBottom: 1,
         },
-        tabBarActiveTintColor: designSystem.colors.green,
-        tabBarInactiveTintColor: designSystem.colors.tabInactive,
+        tabBarActiveTintColor: theme.colors.primary,
+        tabBarInactiveTintColor: theme.colors.tabIconInactive,
         tabBarIcon: ({ color, size }) => {
           const map: Record<keyof AppTabParamList, React.ComponentProps<typeof Icon>['name']> = {
             Inicio: 'home',

@@ -1,5 +1,6 @@
 import React, { memo } from 'react';
 import { Switch } from 'react-native';
+import { useAppTheme } from '../../theme';
 import { ProfileRow } from './ProfileRow';
 
 interface ProfileToggleRowProps {
@@ -15,6 +16,8 @@ const ProfileToggleRowComponent: React.FC<ProfileToggleRowProps> = ({
   value,
   onValueChange,
 }) => {
+  const theme = useAppTheme();
+
   return (
     <ProfileRow
       icon={icon}
@@ -23,9 +26,9 @@ const ProfileToggleRowComponent: React.FC<ProfileToggleRowProps> = ({
         <Switch
           value={value}
           onValueChange={onValueChange}
-          trackColor={{ false: '#3A4F44', true: '#1FD867' }}
-          thumbColor={value ? '#DCF7E7' : '#B5C5BB'}
-          ios_backgroundColor="#3A4F44"
+          trackColor={{ false: theme.colors.surfaceStrong, true: theme.colors.primary }}
+          thumbColor={value ? theme.colors.textInverse : theme.colors.textMuted}
+          ios_backgroundColor={theme.colors.surfaceStrong}
         />
       )}
     />

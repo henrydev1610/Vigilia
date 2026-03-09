@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useIsFocused } from '@react-navigation/native';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { onlineManager, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   addFavoriteRequest,
   deputadosResumoMesRequest,
@@ -12,10 +12,11 @@ import {
 import { mapDeputy } from '../services/mappers';
 import { getApiErrorMessage } from '../utils/apiError';
 import { BRAZIL_UFS } from '../constants/ufs';
+import { getMandateYearsConfig, getNearestAvailableYear } from '../config/mandateYears';
 import { dedupeByKey, stableKeyFromDeputado } from '../utils/keys';
 import { dedupeStrings } from '../utils/dedupe';
 import { normalizeMonthlySeries } from '../utils/series';
-import { getRateLimitSnapshot, subscribeRateLimit } from '../services/api';
+import { getApiRequestErrorDetails, getApiResolution, getRateLimitSnapshot, subscribeRateLimit } from '../services/api';
 
 interface DeputadosFilters {
   search: string;
@@ -27,6 +28,15 @@ interface DeputadosFilters {
 }
 
 const LIST_LIMIT = 600;
+type ExploreErrorType = 'network' | 'http' | 'parse' | 'unknown' | null;
+
+function classifyExploreError(error: unknown): ExploreErrorType {
+  const details = getApiRequestErrorDetails(error);
+  if (details.kind === 'network') return 'network';
+  if (details.kind === 'http') return 'http';
+  if (error instanceof SyntaxError || error instanceof TypeError) return 'parse';
+  return 'unknown';
+}
 
 function buildMonthRef(ano: number, mes: number) {
   return `${ano}-${String(Math.max(1, Math.min(12, mes))).padStart(2, '0')}`;
@@ -37,18 +47,22 @@ export function useDeputadosScreenController() {
   const queryClient = useQueryClient();
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;
+  const availableYears = useMemo(() => getMandateYearsConfig(), []);
+  const initialYear = useMemo(() => getNearestAvailableYear(currentYear, availableYears), [availableYears, currentYear]);
 
   const [filters, setFilters] = useState<DeputadosFilters>({
     search: '',
     uf: '',
     partido: '',
     sort: 'highest_spending',
-    ano: currentYear,
+    ano: initialYear,
     mes: currentMonth,
   });
   const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
   const [error, setError] = useState<string | null>(null);
+  const [errorType, setErrorType] = useState<ExploreErrorType>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [messageTone, setMessageTone] = useState<'success' | 'warning' | 'error'>('success');
   const [refreshing, setRefreshing] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [rateLimitedSeconds, setRateLimitedSeconds] = useState(0);
@@ -92,7 +106,19 @@ export function useDeputadosScreenController() {
       });
       setFavoriteIds(ids);
     } catch (err) {
-      setError(getApiErrorMessage(err, 'Falha ao carregar favoritos.'));
+      const details = getApiRequestErrorDetails(err);
+      if (__DEV__) {
+        // eslint-disable-next-line no-console
+        console.log('[explorar:favorites:error]', {
+          kind: details.kind,
+          status: details.status ?? null,
+          code: details.code ?? null,
+          message: details.message,
+          stack: err instanceof Error ? err.stack : null,
+        });
+      }
+      setMessage(getApiErrorMessage(err, 'Falha ao carregar favoritos.'));
+      setMessageTone('warning');
     }
   }, []);
 
@@ -112,16 +138,79 @@ export function useDeputadosScreenController() {
   }, []);
 
   useEffect(() => {
+    if (!__DEV__ || !isFocused) return;
+    const resolution = getApiResolution();
+    // eslint-disable-next-line no-console
+    console.log('[explorar:api]', {
+      baseUrl: resolution.baseUrl,
+      source: resolution.source,
+      deputadosEndpoint: '/api/deputados',
+      resumoEndpoint: '/api/deputados/resumo',
+      connectivity: onlineManager.isOnline(),
+    });
+  }, [isFocused]);
+
+  useEffect(() => {
     if (deputadosQuery.error) {
-      setError(getApiErrorMessage(deputadosQuery.error, 'Falha ao carregar lista de deputados.'));
+      const details = getApiRequestErrorDetails(deputadosQuery.error);
+      const type = classifyExploreError(deputadosQuery.error);
+      const hasMainRows = (deputadosQuery.data?.rows?.length ?? 0) > 0;
+
+      if (__DEV__) {
+        // eslint-disable-next-line no-console
+        console.log('[explorar:deputados:error]', {
+          kind: details.kind,
+          status: details.status ?? null,
+          code: details.code ?? null,
+          message: details.message,
+          stack: deputadosQuery.error instanceof Error ? deputadosQuery.error.stack : null,
+          hasMainRows,
+        });
+      }
+
+      if (!hasMainRows && type === 'network') {
+        setError(getApiErrorMessage(deputadosQuery.error, 'Falha de conexao ao carregar lista de deputados.'));
+        setErrorType('network');
+        return;
+      }
+
+      setError(null);
+      setErrorType(null);
+      setMessage(getApiErrorMessage(deputadosQuery.error, 'Falha ao carregar lista de deputados.'));
+      setMessageTone(type === 'http' ? 'warning' : 'error');
       return;
     }
+
     if (resumoQuery.error) {
-      setError(getApiErrorMessage(resumoQuery.error, 'Falha ao carregar resumo do mês.'));
-      return;
+      const details = getApiRequestErrorDetails(resumoQuery.error);
+      const hasMainRows = (deputadosQuery.data?.rows?.length ?? 0) > 0;
+
+      if (__DEV__) {
+        // eslint-disable-next-line no-console
+        console.log('[explorar:resumo:error]', {
+          kind: details.kind,
+          status: details.status ?? null,
+          code: details.code ?? null,
+          message: details.message,
+          stack: resumoQuery.error instanceof Error ? resumoQuery.error.stack : null,
+          hasMainRows,
+        });
+      }
+
+      setMessage(getApiErrorMessage(resumoQuery.error, 'Falha ao carregar resumo do mes.'));
+      setMessageTone('warning');
     }
+
     setError(null);
-  }, [deputadosQuery.error, resumoQuery.error]);
+    setErrorType(null);
+  }, [deputadosQuery.data?.rows?.length, deputadosQuery.error, resumoQuery.error]);
+
+  useEffect(() => {
+    if (availableYears.length === 0) return;
+    if (availableYears.includes(filters.ano)) return;
+    const nearestYear = getNearestAvailableYear(filters.ano, availableYears);
+    setFilters((prev) => ({ ...prev, ano: nearestYear }));
+  }, [availableYears, filters.ano]);
 
   const items = useMemo(() => {
     const rows = deputadosQuery.data?.rows ?? [];
@@ -217,10 +306,11 @@ export function useDeputadosScreenController() {
         queryClient.invalidateQueries({ queryKey: ['deputados-resumo', monthRef] }),
       ]);
       setMessage('Base sincronizada com sucesso.');
+      setMessageTone('success');
     },
     onError: (err) => {
-      setError(getApiErrorMessage(err, 'Falha ao sincronizar deputados.'));
-      setMessage(null);
+      setMessage(getApiErrorMessage(err, 'Falha ao sincronizar deputados.'));
+      setMessageTone('error');
     },
   });
 
@@ -246,6 +336,8 @@ export function useDeputadosScreenController() {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     setMessage(null);
+    setError(null);
+    setErrorType(null);
     try {
       await Promise.all([
         deputadosQuery.refetch({ cancelRefetch: true }),
@@ -270,13 +362,15 @@ export function useDeputadosScreenController() {
       }
       await loadFavorites();
     } catch (err) {
-      setError(getApiErrorMessage(err, 'Não foi possível atualizar favorito.'));
+      setMessage(getApiErrorMessage(err, 'Nao foi possivel atualizar favorito.'));
+      setMessageTone('error');
     }
   }, [favoriteIds, loadFavorites]);
 
   const syncDeputados = useCallback(async () => {
     setSyncing(true);
     setMessage('Sincronizando base...');
+    setMessageTone('warning');
     try {
       await syncMutation.mutateAsync({ force: true });
     } finally {
@@ -288,8 +382,6 @@ export function useDeputadosScreenController() {
     await onRefresh();
   }, [onRefresh]);
 
-  const availableYears = useMemo(() => [currentYear - 3, currentYear - 2, currentYear - 1, currentYear], [currentYear]);
-
   return {
     items,
     loading: deputadosQuery.isLoading || resumoQuery.isLoading,
@@ -297,7 +389,9 @@ export function useDeputadosScreenController() {
     loadingMore: false,
     syncing,
     error,
+    errorType,
     message,
+    messageTone,
     favoriteIds,
     filters,
     setFilters,

@@ -14,6 +14,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../store/authStore';
 import { ThemeMode, useThemeStore } from '../../store/theme.store';
+import { useAppTheme } from '../../theme';
 import { useUserProfileStore } from '../../store/userProfile.store';
 import { BRAZIL_UFS } from '../../constants/ufs';
 import { hasImagePickerSupport, pickImageFromLibrary, takePhotoWithCamera } from '../../services/imagePicker';
@@ -53,6 +54,7 @@ function asChipSummary(items: string[], formatter?: (value: string) => string) {
 export const ProfileScreen: React.FC = () => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const theme = useAppTheme();
 
   const authUserId = useAuthStore((state) => state.user?.id ?? null);
   const authName = useAuthStore((state) => state.user?.name ?? '');
@@ -284,16 +286,16 @@ export const ProfileScreen: React.FC = () => {
 
   return (
     <ScreenBackground includeBottomInset={false}>
-      <View style={[styles.topBar, { paddingTop: insets.top > 0 ? 6 : 12 }]}> 
+      <View style={[styles.topBar, { borderBottomColor: theme.colors.border, paddingTop: insets.top > 0 ? 6 : 12 }]}>
         <Pressable style={styles.topAction} onPress={() => (navigation.canGoBack() ? navigation.goBack() : null)}>
-          <Icon name="chevron-left" size={18} color="#23D565" />
-          <AppText weight="bold" style={styles.topActionText}>Voltar</AppText>
+          <Icon name="chevron-left" size={18} color={theme.colors.primary} />
+          <AppText weight="bold" style={[styles.topActionText, { color: theme.colors.primary }]}>Voltar</AppText>
         </Pressable>
 
-        <AppText weight="bold" style={styles.topTitle}>Perfil</AppText>
+        <AppText weight="bold" style={[styles.topTitle, { color: theme.colors.text }]}>Perfil</AppText>
 
         <Pressable style={styles.topAction} onPress={() => void onSave()}>
-          <AppText weight="bold" style={styles.topActionText}>{saving ? 'Salvando...' : 'Salvar'}</AppText>
+          <AppText weight="bold" style={[styles.topActionText, { color: theme.colors.primary }]}>{saving ? 'Salvando...' : 'Salvar'}</AppText>
         </Pressable>
       </View>
 
@@ -320,7 +322,7 @@ export const ProfileScreen: React.FC = () => {
             onPress={openPartiesModal}
             rightNode={(
               <Pressable onPress={openPartiesModal} hitSlop={8}>
-                <Icon name="plus" size={18} color="#8FE9A8" />
+                <Icon name="plus" size={18} color={theme.colors.primary} />
               </Pressable>
             )}
           />
@@ -337,7 +339,7 @@ export const ProfileScreen: React.FC = () => {
           />
 
           <ProfileRow icon="theme-light-dark" label="Tema" value={themeLabel} showChevron onPress={() => setActiveModal('theme')} />
-          <AppText style={styles.helperText}>Por padrão, o app segue o tema do dispositivo automaticamente.</AppText>
+          <AppText style={[styles.helperText, { color: theme.colors.textMuted }]}>Por padrão, o app segue o tema do dispositivo automaticamente.</AppText>
 
           <ProfileToggleRow
             icon="cellphone-cog"
@@ -366,10 +368,13 @@ export const ProfileScreen: React.FC = () => {
         </ProfileCard>
 
         <LogoutButton onPress={() => void logout()} />
-        <Pressable style={styles.deleteAccountButton} onPress={() => setSecurityModal('delete')}>
-          <AppText weight="bold" style={styles.deleteAccountText}>Excluir minha conta</AppText>
+        <Pressable
+          style={[styles.deleteAccountButton, { backgroundColor: theme.colors.dangerSoft, borderColor: theme.colors.danger }]}
+          onPress={() => setSecurityModal('delete')}
+        >
+          <AppText weight="bold" style={[styles.deleteAccountText, { color: theme.colors.danger }]}>Excluir minha conta</AppText>
         </Pressable>
-        <AppText style={styles.version}>TRANSPARÊNCIA PÚBLICA V2.4.0</AppText>
+        <AppText style={[styles.version, { color: theme.colors.textMuted }]}>TRANSPARÊNCIA PÚBLICA V2.4.0</AppText>
       </ScrollView>
 
       <Modal transparent visible={activeModal === 'avatar'} animationType="fade" onRequestClose={closeModal}>
@@ -391,7 +396,7 @@ export const ProfileScreen: React.FC = () => {
               value={nameDraft}
               onChangeText={setNameDraft}
               placeholder="Digite seu nome"
-              placeholderTextColor="#6D877A"
+              placeholderTextColor={theme.colors.textMuted}
               style={styles.input}
               autoCapitalize="words"
             />
@@ -412,7 +417,7 @@ export const ProfileScreen: React.FC = () => {
               value={partyQuery}
               onChangeText={setPartyQuery}
               placeholder="Buscar partido"
-              placeholderTextColor="#6D877A"
+              placeholderTextColor={theme.colors.textMuted}
               style={styles.input}
             />
             <ScrollView style={styles.listArea}>
@@ -421,7 +426,7 @@ export const ProfileScreen: React.FC = () => {
                 return (
                   <Pressable key={party} style={styles.selectRow} onPress={() => toggleParty(party)}>
                     <AppText style={styles.selectLabel}>{party}</AppText>
-                    <Icon name={selected ? 'check-circle' : 'checkbox-blank-circle-outline'} size={20} color={selected ? '#1FD867' : '#5E786A'} />
+                    <Icon name={selected ? 'check-circle' : 'checkbox-blank-circle-outline'} size={20} color={selected ? theme.colors.primary : theme.colors.textMuted} />
                   </Pressable>
                 );
               })}
@@ -444,7 +449,7 @@ export const ProfileScreen: React.FC = () => {
                 return (
                   <Pressable key={uf} style={styles.selectRow} onPress={() => toggleState(uf)}>
                     <AppText style={styles.selectLabel}>{UF_NAMES[uf]} ({uf})</AppText>
-                    <Icon name={selected ? 'check-circle' : 'checkbox-blank-circle-outline'} size={20} color={selected ? '#1FD867' : '#5E786A'} />
+                    <Icon name={selected ? 'check-circle' : 'checkbox-blank-circle-outline'} size={20} color={selected ? theme.colors.primary : theme.colors.textMuted} />
                   </Pressable>
                 );
               })}
@@ -467,7 +472,7 @@ export const ProfileScreen: React.FC = () => {
               return (
                 <Pressable key={mode} style={styles.selectRow} onPress={() => onSelectTheme(mode)}>
                   <AppText style={styles.selectLabel}>{label}</AppText>
-                  <Icon name={selected ? 'radiobox-marked' : 'radiobox-blank'} size={20} color={selected ? '#1FD867' : '#5E786A'} />
+                  <Icon name={selected ? 'radiobox-marked' : 'radiobox-blank'} size={20} color={selected ? theme.colors.primary : theme.colors.textMuted} />
                 </Pressable>
               );
             })}
@@ -483,7 +488,7 @@ export const ProfileScreen: React.FC = () => {
               value={currentPassword}
               onChangeText={setCurrentPassword}
               placeholder="Senha atual"
-              placeholderTextColor="#6D877A"
+              placeholderTextColor={theme.colors.textMuted}
               style={styles.input}
               secureTextEntry
             />
@@ -491,7 +496,7 @@ export const ProfileScreen: React.FC = () => {
               value={newPassword}
               onChangeText={setNewPassword}
               placeholder="Nova senha"
-              placeholderTextColor="#6D877A"
+              placeholderTextColor={theme.colors.textMuted}
               style={styles.input}
               secureTextEntry
             />
@@ -499,7 +504,7 @@ export const ProfileScreen: React.FC = () => {
               value={confirmNewPassword}
               onChangeText={setConfirmNewPassword}
               placeholder="Confirmar nova senha"
-              placeholderTextColor="#6D877A"
+              placeholderTextColor={theme.colors.textMuted}
               style={styles.input}
               secureTextEntry
             />
@@ -521,7 +526,7 @@ export const ProfileScreen: React.FC = () => {
               value={deletePassword}
               onChangeText={setDeletePassword}
               placeholder="Digite sua senha"
-              placeholderTextColor="#6D877A"
+              placeholderTextColor={theme.colors.textMuted}
               style={styles.input}
               secureTextEntry
             />
@@ -741,3 +746,4 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
 });
+
