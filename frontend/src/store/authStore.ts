@@ -5,6 +5,7 @@ import {
   authMeRequest,
   changePasswordRequest,
   deleteMeRequest,
+  googleLoginRequest,
   loginRequest,
   logoutRequest,
   refreshRequest,
@@ -12,6 +13,7 @@ import {
   updateMeRequest,
   userMeRequest,
 } from '../services/endpoints';
+import { signOutFromGoogle } from '../services/googleAuth';
 import { ChangePasswordPayload, UpdateMePayload, User } from '../types/api';
 import { useUserProfileStore } from './userProfile.store';
 import { queryClient } from '../query/client';
@@ -53,6 +55,7 @@ interface AuthState {
   isAuthenticated: () => boolean;
   clearError: () => void;
   login: (email: string, password: string) => Promise<void>;
+  loginWithGoogle: (idToken: string) => Promise<void>;
   register: (firstName: string, lastName: string, email: string, password: string) => Promise<void>;
   fetchMe: () => Promise<User | null>;
   updateMe: (payload: UpdateMePayload) => Promise<User | null>;
@@ -155,6 +158,25 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     return user;
   },
 
+  loginWithGoogle: async (idToken) => {
+    set({ isLoading: true, error: null });
+    try {
+      useUserProfileStore.getState().clearActiveUser();
+      const tokens = await googleLoginRequest({ idToken });
+      set({
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+      });
+      await persistTokens(tokens.accessToken, tokens.refreshToken);
+      await get().fetchMe();
+    } catch (error) {
+      set({ error: error instanceof Error ? error.message : 'Falha no login com Google.' });
+      throw error;
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
   changePassword: async (payload) => {
     await changePasswordRequest(payload);
   },
@@ -241,6 +263,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } catch {
       // Ignore network errors during logout to keep UX responsive.
     }
+    await signOutFromGoogle();
     set({ user: null, accessToken: null, refreshToken: null });
     await clearUserSessionState();
   },

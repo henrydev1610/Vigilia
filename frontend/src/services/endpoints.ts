@@ -30,6 +30,8 @@ function normalizeUser(payload: any): User {
     id: String(raw?.id ?? raw?._id ?? ''),
     name: String(raw?.name ?? raw?.nome ?? ''),
     email: String(raw?.email ?? ''),
+    avatarUrl: raw?.avatarUrl ?? rawProfile?.avatarUrl ?? null,
+    provider: typeof raw?.provider === 'string' ? raw.provider : undefined,
     profile: rawProfile ? normalizeUserProfile(rawProfile) : undefined,
   };
 }
@@ -110,6 +112,11 @@ export async function registerRequest(input: RegisterPayload) {
 
 export async function loginRequest(input: LoginPayload): Promise<AuthTokens> {
   const response = await api.post('/auth/login', input);
+  return extractTokens(response.data);
+}
+
+export async function googleLoginRequest(input: { idToken: string }): Promise<AuthTokens> {
+  const response = await api.post('/auth/google', input);
   return extractTokens(response.data);
 }
 

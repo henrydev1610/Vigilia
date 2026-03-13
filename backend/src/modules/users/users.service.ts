@@ -81,6 +81,9 @@ export class UsersService {
     if (!user) {
       throw new AppError("Usuario nao encontrado", 404, "USER_NOT_FOUND");
     }
+    if (!user.passwordHash) {
+      throw new AppError("Conta Google sem senha local. Defina uma senha antes de alterar.", 400, "PASSWORD_NOT_AVAILABLE");
+    }
 
     const valid = await bcrypt.compare(currentPassword, user.passwordHash);
     if (!valid) {
@@ -100,6 +103,9 @@ export class UsersService {
     const user = await this.usersRepository.findById(userId);
     if (!user) {
       throw new AppError("Usuario nao encontrado", 404, "USER_NOT_FOUND");
+    }
+    if (!user.passwordHash) {
+      throw new AppError("Conta Google sem senha local nao pode ser removida por este fluxo.", 400, "PASSWORD_NOT_AVAILABLE");
     }
 
     const valid = await bcrypt.compare(password, user.passwordHash);

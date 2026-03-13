@@ -7,6 +7,7 @@ import { AppError } from "../../shared/errors/app-error";
 import { UsersRepository } from "../users/users.repository";
 import { RefreshTokenRepository } from "./refresh-token.repository";
 import type { LoginPayload } from "./auth.types";
+import { verifyGoogleToken } from "../../services/googleAuthService";
 
 type TokenPayload = {
   sub: string;
@@ -41,6 +42,44 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
+  private serializeUser(user: {
+    id: string;
+    name: string;
+    email: string;
+    createdAt: Date;
+    avatarUrl?: string | null;
+    profile?: {
+      firstName: string;
+      lastName: string;
+      avatarUrl?: string | null;
+    } | null;
+  }) {
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      createdAt: user.createdAt,
+      avatarUrl: user.avatarUrl ?? user.profile?.avatarUrl ?? null,
+      profile: user.profile
+        ? {
+            userId: user.id,
+            firstName: user.profile.firstName,
+            lastName: user.profile.lastName,
+            avatarUrl: user.profile.avatarUrl ?? user.avatarUrl ?? null,
+          }
+        : undefined,
+    };
+  }
+
+  private splitName(name: string) {
+    const normalized = name.trim().replace(/\s+/g, " ");
+    const [firstName = "", ...rest] = normalized.split(" ");
+    return {
+      firstName: firstName || "Google",
+      lastName: rest.join(" ").trim() || "User",
+    };
+  }
+
   async register(input: { firstName: string; lastName: string; email: string; password: string }) {
     const existing = await this.usersRepository.findByEmail(input.email);
     if (existing) {
@@ -61,8 +100,8 @@ export class AuthService {
       id: user.id,
       name: user.name,
       email: user.email,
-      firstName: user.profile?.firstName ?? input.firstName,
-      lastName: user.profile?.lastName ?? input.lastName,
+      firstName: (user as any).profile?.firstName ?? input.firstName,
+      lastName: (user as any).profile?.lastName ?? input.lastName,
       createdAt: user.createdAt
     };
   }
@@ -72,6 +111,9 @@ export class AuthService {
     if (!user) {
       throw new AppError("Credenciais invalidas", 401, "INVALID_CREDENTIALS");
     }
+    if (!user.passwordHash) {
+      throw new AppError("Esta conta utiliza login social. Entre com Google.", 401, "PASSWORD_LOGIN_UNAVAILABLE");
+    }
 
     const validPassword = await bcrypt.compare(input.password, user.passwordHash);
     if (!validPassword) {
@@ -79,6 +121,74 @@ export class AuthService {
     }
 
     return this.issueTokens({ sub: user.id, email: user.email });
+  }
+
+  async loginWithGoogle(input: { idToken: string }) {
+    const payload = await verifyGoogleToken(input.idToken);
+    const emailValue = payload.email;
+    if (!emailValue) {
+      throw new AppError("Token Google invalido", 401, "INVALID_GOOGLE_TOKEN");
+    }
+    const email = emailValue.trim().toLowerCase();
+    const name = payload.name?.trim() || email.split("@")[0] || "Google User";
+    const avatarUrl = payload.picture ?? null;
+    const googleId = payload.sub;
+    const { firstName, lastName } = this.splitName(name);
+
+    let user = await this.usersRepository.findByGoogleId(googleId);
+
+    if (!user) {
+      user = await this.usersRepository.findByEmail(email);
+      if (user) {
+        user = await this.usersRepository.update(user.id, {
+          googleId,
+          avatarUrl,
+        });
+      }
+    } else if (user.email !== email) {
+      const userWithEmail = await this.usersRepository.findByEmail(email);
+      if (!userWithEmail || userWithEmail.id === user.id) {
+        user = await this.usersRepository.update(user.id, {
+          email,
+          name,
+          avatarUrl,
+        });
+      }
+    }
+
+    if (!user) {
+      user = await this.usersRepository.create({
+        name,
+        email,
+        passwordHash: null,
+        googleId,
+        avatarUrl,
+        provider: "google",
+      });
+    } else {
+      user = await this.usersRepository.update(user.id, {
+        name,
+        avatarUrl,
+        googleId,
+      });
+    }
+
+    await this.usersRepository.upsertProfileByUserId(user.id, {
+      firstName,
+      lastName,
+      avatarUrl,
+    });
+
+    const profile = await this.usersRepository.getProfileByUserId(user.id);
+    const tokens = await this.issueTokens({ sub: user.id, email: user.email });
+
+    return {
+      user: this.serializeUser({
+        ...user,
+        profile,
+      }),
+      ...tokens,
+    };
   }
 
   async refresh(refreshToken: string) {
@@ -114,6 +224,12 @@ export class AuthService {
     if (!user) {
       throw new AppError("Usuario nao encontrado", 404, "USER_NOT_FOUND");
     }
-    return { id: user.id, name: user.name, email: user.email, createdAt: user.createdAt };
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      avatarUrl: (user as any).avatarUrl ?? null,
+      createdAt: user.createdAt,
+    };
   }
 }

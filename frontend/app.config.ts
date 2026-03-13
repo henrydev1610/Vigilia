@@ -1,4 +1,6 @@
-﻿import { ExpoConfig } from 'expo/config';
+import { ExpoConfig } from 'expo/config';
+
+const googleIosUrlScheme = process.env.EXPO_PUBLIC_GOOGLE_IOS_URL_SCHEME;
 
 export default ({ config }: { config: ExpoConfig }): ExpoConfig => ({
   ...config,
@@ -13,14 +15,26 @@ export default ({ config }: { config: ExpoConfig }): ExpoConfig => ({
   },
   android: {
     ...(config.android ?? {}),
-    permissions: Array.from(new Set([
-      ...((config.android?.permissions as string[] | undefined) ?? []),
-      'CAMERA',
-      'READ_MEDIA_IMAGES',
-    ])),
+    permissions: Array.from(
+      new Set([
+        ...((config.android?.permissions as string[] | undefined) ?? []),
+        'CAMERA',
+        'READ_MEDIA_IMAGES',
+      ]),
+    ),
   },
   plugins: [
     ...((config.plugins as any[]) ?? []),
+    ...(googleIosUrlScheme
+      ? [
+          [
+            '@react-native-google-signin/google-signin',
+            {
+              iosUrlScheme: googleIosUrlScheme,
+            },
+          ],
+        ]
+      : []),
     [
       'expo-image-picker',
       {
@@ -32,5 +46,6 @@ export default ({ config }: { config: ExpoConfig }): ExpoConfig => ({
   extra: {
     ...(config.extra ?? {}),
     apiUrl: process.env.EXPO_PUBLIC_API_URL,
+    googleWebClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
   },
 });

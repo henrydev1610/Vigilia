@@ -1,7 +1,7 @@
 import { FastifyInstance } from "fastify";
 import { SafeParseReturnType } from "zod";
 import { AuthService } from "./auth.service";
-import { loginSchema, refreshSchema, registerSchema } from "./auth.schemas";
+import { googleLoginSchema, loginSchema, refreshSchema, registerSchema } from "./auth.schemas";
 import { AppError } from "../../shared/errors/app-error";
 import { classifyPrismaError } from "../../shared/errors/prisma-error";
 import type { LoginPayload } from "./auth.types";
@@ -53,6 +53,12 @@ export async function authRoutes(app: FastifyInstance) {
       "Email ou senha invalidos"
     );
     const data = await authService.login(body);
+    return { success: true, data };
+  });
+
+  app.post("/auth/google", async (request) => {
+    const body = parseOrThrow(googleLoginSchema.safeParse(request.body), "Token Google invalido");
+    const data = await authService.loginWithGoogle(body);
     return { success: true, data };
   });
 

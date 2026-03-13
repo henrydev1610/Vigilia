@@ -134,8 +134,9 @@ Se precisar, derrube processos que ocupam essas portas ou altere mapeamentos no 
   - `GET /health/redis` -> `200` quando Redis ok, `503` degradado, `200` com `disabled` quando `ENABLE_REDIS=false`
 - Auth:
   - `POST /auth/register`
-  - `POST /auth/login` (login e POST com JSON `{ "email": "...", "password": "..." }`)
-  - `POST /auth/refresh`
+- `POST /auth/login` (login e POST com JSON `{ "email": "...", "password": "..." }`)
+- `POST /auth/google` (login social com JSON `{ "idToken": "..." }`)
+- `POST /auth/refresh`
   - `GET /auth/me`
   - `POST /auth/logout`
 - Users:
@@ -177,3 +178,22 @@ Passos rapidos:
 2. Configure variaveis de ambiente no runtime do app
 3. `npm install`
 4. `npx expo start`
+
+## Google OAuth
+
+Para habilitar login com Google:
+
+- crie um projeto no Google Cloud Console
+- configure a OAuth Consent Screen
+- crie os client IDs: Web, Android e iOS
+- configure `GOOGLE_WEB_CLIENT_ID` no backend com o valor do client ID Web
+
+Fluxo implementado:
+
+- o app autentica no dispositivo e envia `idToken` para `POST /auth/google`
+- o backend valida o token com Google
+- o backend encontra ou cria o usuario, vincula `googleId`/avatar e emite `accessToken` + `refreshToken`
+
+Observacao:
+
+- contas criadas via Google podem existir sem `passwordHash`; por isso operacoes de senha local retornam erro explicito ate uma senha ser definida por outro fluxo

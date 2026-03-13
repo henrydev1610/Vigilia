@@ -8,6 +8,7 @@ import { useAuthStore } from '../../store/authStore';
 import { getApiErrorMessage } from '../../utils/apiError';
 import { AuthCard, AuthLayout, IconTextInput, PrimaryButton } from '../../components/auth';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { signInWithGoogle } from '../../services/googleAuth';
 
 type LoginNav = StackNavigationProp<AuthStackParamList, 'Login'>;
 
@@ -20,6 +21,7 @@ function isValidEmail(email: string) {
 export const LoginScreen: React.FC = () => {
   const navigation = useNavigation<LoginNav>();
   const login = useAuthStore((state) => state.login);
+  const loginWithGoogle = useAuthStore((state) => state.loginWithGoogle);
   const isLoading = useAuthStore((state) => state.isLoading);
 
   const [email, setEmail] = useState('');
@@ -72,6 +74,21 @@ export const LoginScreen: React.FC = () => {
       }
     } catch (err) {
       setError(getApiErrorMessage(err, 'Não foi possível entrar.'));
+    }
+  }
+
+  async function handleGoogleLogin() {
+    try {
+      setError(null);
+      const { idToken, user } = await signInWithGoogle();
+      await loginWithGoogle(idToken);
+      if (rememberAccess && user.email) {
+        await AsyncStorage.setItem(REMEMBER_ACCESS_KEY, user.email.trim().toLowerCase());
+      } else {
+        await AsyncStorage.removeItem(REMEMBER_ACCESS_KEY);
+      }
+    } catch (err) {
+      setError(getApiErrorMessage(err, 'Nao foi possivel entrar com Google.'));
     }
   }
 
@@ -140,6 +157,22 @@ export const LoginScreen: React.FC = () => {
           onPress={handleLogin}
         />
 
+        <Pressable
+          onPress={handleGoogleLogin}
+          disabled={isLoading}
+          style={({ pressed }) => [
+            styles.googleButton,
+            isLoading ? styles.googleButtonDisabled : null,
+            pressed ? styles.googleButtonPressed : null,
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel="Continuar com Google"
+        >
+          <MaterialCommunityIcons name="google" size={22} color="#1f2937" />
+          <Text style={styles.googleButtonText}>Continuar com Google</Text>
+          <View style={styles.googleButtonSpacer} />
+        </Pressable>
+
         <View style={styles.bottomInfo}>
           <Text style={styles.bottomInfoText}>Não possui conta? </Text>
           <Pressable onPress={() => navigation.navigate('Register')} hitSlop={8}>
@@ -194,6 +227,33 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '700',
+  },
+  googleButton: {
+    height: 56,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#d7dee7',
+    backgroundColor: '#ffffff',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 18,
+  },
+  googleButtonPressed: {
+    opacity: 0.92,
+  },
+  googleButtonDisabled: {
+    opacity: 0.6,
+  },
+  googleButtonText: {
+    flex: 1,
+    textAlign: 'center',
+    color: '#1f2937',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  googleButtonSpacer: {
+    width: 22,
   },
   bottomInfo: {
     marginTop: 24,

@@ -54,9 +54,29 @@ Acoes disponiveis:
 
 - `GET /health`
 - `POST /auth/login`
+- `POST /auth/google`
 - `POST /auth/register`
 - `POST /auth/refresh`
 - `GET /auth/me`
+
+## Google Sign-In
+
+Login com Google usa autenticacao no dispositivo e validacao do `idToken` no backend.
+
+Variaveis de ambiente:
+
+```env
+EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=seu-web-client-id.apps.googleusercontent.com
+EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=seu-ios-client-id.apps.googleusercontent.com
+EXPO_PUBLIC_GOOGLE_IOS_URL_SCHEME=com.googleusercontent.apps.seu-reversed-client-id
+```
+
+Notas de integracao:
+
+- Android e iOS exigem client IDs proprios no Google Cloud Console
+- em iOS, o plugin do Expo precisa do reversed client ID em `EXPO_PUBLIC_GOOGLE_IOS_URL_SCHEME`
+- `@react-native-google-signin/google-signin` exige build nativo; Expo Go nao e suficiente para esse fluxo
+- apos mudar configuracao nativa, gere novo build com `npx expo run:android` ou `npx expo run:ios`
 
 ## Teste rapido das telas novas (Home Deputados + Detalhes)
 

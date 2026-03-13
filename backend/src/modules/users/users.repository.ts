@@ -16,30 +16,50 @@ export class UsersRepository {
     return prisma.user.findUnique({ where: { email } });
   }
 
+  findByGoogleId(googleId: string) {
+    return prisma.user.findFirst({
+      where: { googleId } as any,
+    });
+  }
+
   findById(id: string) {
     return prisma.user.findUnique({ where: { id } });
   }
 
-  create(data: { name: string; email: string; passwordHash: string }) {
-    return prisma.user.create({ data });
+  create(data: {
+    name: string;
+    email: string;
+    passwordHash?: string | null;
+    googleId?: string | null;
+    avatarUrl?: string | null;
+    provider?: string;
+  }) {
+    return prisma.user.create({ data: data as any });
   }
 
   createWithProfile(data: {
     name: string;
     email: string;
-    passwordHash: string;
+    passwordHash?: string | null;
     firstName: string;
     lastName: string;
+    googleId?: string | null;
+    avatarUrl?: string | null;
+    provider?: string;
   }) {
     return prisma.user.create({
       data: {
         name: data.name,
         email: data.email,
-        passwordHash: data.passwordHash,
+        passwordHash: data.passwordHash ?? null,
+        googleId: data.googleId,
+        avatarUrl: data.avatarUrl,
+        provider: data.provider,
         profile: {
           create: {
             firstName: data.firstName,
             lastName: data.lastName,
+            avatarUrl: data.avatarUrl,
           },
         },
       },
@@ -54,12 +74,15 @@ export class UsersRepository {
     data: {
       name?: string;
       email?: string;
-      passwordHash?: string;
+      passwordHash?: string | null;
+      googleId?: string | null;
+      avatarUrl?: string | null;
+      provider?: string;
     }
   ) {
     return prisma.user.update({
       where: { id },
-      data
+      data: data as any
     });
   }
 

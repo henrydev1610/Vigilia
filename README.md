@@ -91,6 +91,8 @@ Observacoes importantes:
 - celular e computador precisam estar na mesma rede
 - `localhost` nao funciona no celular fisico para acessar a API do host
 - o endpoint `GET /health` pode ser usado para validar a conexao
+- login com Google exige configurar `GOOGLE_WEB_CLIENT_ID` no backend e `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` no app
+- para iOS, configure tambem o reversed client ID em `EXPO_PUBLIC_GOOGLE_IOS_URL_SCHEME`
 
 ## Endpoints principais
 
